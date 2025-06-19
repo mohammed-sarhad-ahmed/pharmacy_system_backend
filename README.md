@@ -1,0 +1,2 @@
+This system enables pharmacies to connect directly with suppliers and purchase products without the need for a middleman. Pharmacies can engage with multiple suppliers and communicate through a built-in direct chat feature.
+The transaction process works on a credit-based system: suppliers send the medicines to the pharmacies, and we handle the delivery. Pharmacies can then repay the suppliers either through installments or a one-time payment.

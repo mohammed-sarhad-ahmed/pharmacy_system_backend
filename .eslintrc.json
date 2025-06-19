@@ -15,6 +15,13 @@
     "no-underscore-dangle": "off",
     "class-methods-use-this": "off",
     "prefer-destructuring": ["error", { "object": true, "array": false }],
-    "no-unused-vars": ["error", { "argsIgnorePattern": "req|res|next|val" }]
+    "no-unused-vars": ["error", { "argsIgnorePattern": "req|res|next|val" }],
+
+    // ✅ STRONGER IMPORT CHECKS:
+    "import/named": "error",
+    "import/default": "error",
+    "import/no-named-as-default": "warn",
+    "import/no-unresolved": "error",
+    "import/no-extraneous-dependencies": "error"
   }
 }

@@ -2,11 +2,32 @@ const { UserModel } = require('../model/user');
 
 exports.signup = async (req, res, next) => {
   try {
-    await UserModel.create(req.body);
+    const { name, email, phoneNumber, password, confirmPassword, role } =
+      req.body;
+
+    if (req.body.role?.toLowerCase() === 'admin') {
+      return res
+        .status(403)
+        .json({ message: 'You cannot assign yourself as admin.' });
+    }
+
+    const newUser = await UserModel.create({
+      name,
+      email,
+      phoneNumber,
+      password,
+      confirmPassword,
+      role
+    });
+    res.status(200).send({
+      status: 'Success',
+      data: {
+        newUser
+      }
+    });
   } catch (error) {
-    console.log('error happened :' + error.message);
+    console.log(error.message);
   }
-  res.end();
 };
 
 exports.signin = async (req, res, next) => {};

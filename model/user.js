@@ -25,6 +25,16 @@ const userSchema = new mongoose.Schema(
         }
       ]
     },
+    phoneNumber: {
+      type: String,
+      required: [true, 'Phone number is required.'],
+      set: v => v.replace(/^\+9640/, '+964'),
+      unique: true,
+      validate: {
+        validator: v => /^\+9647[578]\d{8}$/.test(v),
+        message: props => `${props.value} is not a valid Iraqi phone number.`
+      }
+    },
     password: {
       type: String,
       required: [true, 'Password is required. Please create a password.'],
@@ -33,10 +43,6 @@ const userSchema = new mongoose.Schema(
     passwordConfirm: {
       type: String,
       required: [true, 'Please confirm your password.'],
-      minlength: [
-        8,
-        'Password confirmation must also be at least 8 characters long.'
-      ],
       validate: {
         validator: function(passwordConfirm) {
           return this.password === passwordConfirm;

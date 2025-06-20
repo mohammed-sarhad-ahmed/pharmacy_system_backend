@@ -18,12 +18,13 @@ app.use(express.json());
 
 app.use('/auth', authRouter);
 
-app.all('*', (req, res, next) => {
-  next('wrote was not found');
+app.all('/{*everything}', (req, res, next) => {
+  console.log(new Error('Route was not found'));
+  next();
 });
 
 app.use((err, req, res, next) => {
-  res.send(err);
+  res.send({ err });
 });
 
 module.exports = app;

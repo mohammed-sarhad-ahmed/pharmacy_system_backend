@@ -18,4 +18,12 @@ app.use(express.json());
 
 app.use('/auth', authRouter);
 
+app.all('*', (req, res, next) => {
+  next('wrote was not found');
+});
+
+app.use((err, req, res, next) => {
+  res.send(err);
+});
+
 module.exports = app;

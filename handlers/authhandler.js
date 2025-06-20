@@ -2,7 +2,7 @@ const { UserModel } = require('../model/user');
 
 exports.signup = async (req, res, next) => {
   try {
-    const { name, email, phoneNumber, password, confirmPassword, role } =
+    const { name, email, phoneNumber, password, passwordConfirm, role } =
       req.body;
 
     if (req.body.role?.toLowerCase() === 'admin') {
@@ -13,10 +13,12 @@ exports.signup = async (req, res, next) => {
 
     const newUser = await UserModel.create({
       name,
-      email,
+      email: {
+        value: email
+      },
       phoneNumber,
       password,
-      confirmPassword,
+      passwordConfirm,
       role
     });
     res.status(200).send({

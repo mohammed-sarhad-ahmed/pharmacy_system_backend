@@ -1,4 +1,4 @@
-import app from "./app.js";
+const app = require('./app');
 
 app.listen(process.env.SERVER_PORT, process.env.SERVER_ADDRESS, () => {
   console.log(

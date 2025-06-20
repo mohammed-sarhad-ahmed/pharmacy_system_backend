@@ -1,25 +1,49 @@
 const mongoose = require('mongoose');
+const validator = require('validator');
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true
+      required: [
+        true,
+        'Business name is required. Please provide the name of your business.'
+      ]
     },
     email: {
       type: String,
-      required: true,
-      unique: true
+      required: [
+        true,
+        'Email address is required. Please enter your business email.'
+      ],
+      unique: true,
+      validate: [
+        {
+          validator: validator.isEmail,
+          message:
+            'The email you entered is invalid. Please provide a valid email address.'
+        }
+      ]
     },
     password: {
       type: String,
-      required: true,
-      minlength: 8
+      required: [true, 'Password is required. Please create a password.'],
+      minlength: [8, 'Password must be at least 8 characters long.']
     },
     passwordConfirm: {
       type: String,
-      required: true,
-      minlength: 8
+      required: [true, 'Please confirm your password.'],
+      minlength: [
+        8,
+        'Password confirmation must also be at least 8 characters long.'
+      ],
+      validate: {
+        validator: function(passwordConfirm) {
+          return this.password === passwordConfirm;
+        },
+        message:
+          'Passwords do not match. Please make sure both entries are the same.'
+      }
     }
   },
   {

@@ -12,26 +12,24 @@ const userSchema = new mongoose.Schema(
       ]
     },
     email: {
-      value: {
-        type: String,
-        index: true,
-        required: [
-          true,
-          'Email address is required. Please enter your business email.'
-        ],
-        unique: true,
-        validate: [
-          {
-            validator: validator.isEmail,
-            message:
-              'The email you entered is invalid. Please provide a valid email address.'
-          }
-        ]
-      },
-      isVerified: {
-        type: Boolean,
-        default: false
-      }
+      type: String,
+      required: [
+        true,
+        'Email address is required. Please enter your business email.'
+      ],
+      unique: true,
+      index: true,
+      validate: [
+        {
+          validator: validator.isEmail,
+          message:
+            'The email you entered is invalid. Please provide a valid email address.'
+        }
+      ]
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false
     },
     role: {
       type: String,

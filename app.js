@@ -1,6 +1,8 @@
 const express = require('express');
 const { config } = require('dotenv');
 const authRouter = require('./routes/authroute');
+const AppError = require('./utils/apperror');
+const handleError = require('./handlers/errorhandler');
 
 const app = express();
 
@@ -19,12 +21,9 @@ app.use(express.json());
 app.use('/auth', authRouter);
 
 app.all('/{*everything}', (req, res, next) => {
-  console.log(new Error('Route was not found'));
-  next();
+  next(new AppError('route not found', 404));
 });
 
-app.use((err, req, res, next) => {
-  res.send({ err });
-});
+app.use(handleError);
 
 module.exports = app;

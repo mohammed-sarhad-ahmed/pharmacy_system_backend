@@ -17,7 +17,7 @@ function handleCastErrorDB(err) {
 const handleDuplicateFieldsDB = (err) => {
   const [field, value] = Object.entries(err.errorResponse.keyValue)[0];
   const fieldNormalCase = changeCamelCaseToNormalCase(field);
-  const message = `The ${fieldNormalCase} '${value}' is already in use. Please choose a different ${fieldNormalCase}.`;
+  const message = `The ${fieldNormalCase} '${value}' is already in use.`;
   return new AppError(message, 400);
 };
 
@@ -40,7 +40,7 @@ function sendProdError(res, err) {
     console.error(err);
     res.status(500).send({
       status: 'error',
-      message: 'Something went very wrong '
+      message: 'Something went very wrong.'
     });
   }
 }

@@ -88,6 +88,15 @@ userSchema.methods.correctPassword = async (
   await bcrypt.compare(candidatePassword, userPassword);
 };
 
+userSchema.set('toJSON', {
+  transform: (_doc, ret, _options) => {
+    delete ret.password;
+    delete ret.passwordConfirm;
+    delete ret.__v;
+    return ret;
+  }
+});
+
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);

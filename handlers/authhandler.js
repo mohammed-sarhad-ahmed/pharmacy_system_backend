@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { UserModel } = require('../model/user');
 const AppError = require('../utils/apperror');
-const convertPhoneNumberForDbSearch = require('../utils/convertphonenumberfordbsearch');
 
 function signJwtAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
@@ -39,30 +38,16 @@ exports.signup = async (req, res, next) => {
 };
 
 exports.login = async (req, res, next) => {
-  const { identifier, password } = req.body;
-  if (!identifier.trim() || !password.trim()) {
-    return next(
-      new AppError(
-        'Please provide identifier (email or phone number) and password.',
-        400
-      )
-    );
+  const { email, password } = req.body;
+  if (!email.trim() || !password.trim()) {
+    return next(new AppError('Please provide email and password.', 400));
   }
-  let user;
-  if (validator.isEmail(identifier)) {
-    const email = identifier;
-    user = await UserModel.findOne({
-      email: email.toLowerCase()
-    }).select('+password');
-  } else {
-    const phoneNumber = convertPhoneNumberForDbSearch(identifier);
-    user = await UserModel.findOne({
-      phoneNumber
-    }).select('+password');
+  if (!validator.isEmail(email)) {
+    return next(new AppError('Incorrect email or password', 401));
   }
-
+  const user = UserModel.find();
   if (!user || !(await user.correctPassword(password, user.password))) {
-    return next(new AppError('Incorrect identifier or password', 401));
+    return next(new AppError('Incorrect email or password', 401));
   }
   const token = await signJwtAsync({ id: user._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXP

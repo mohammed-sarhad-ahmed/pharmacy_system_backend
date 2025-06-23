@@ -107,3 +107,20 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+
+exports.forgotPassword = async (req, res, next) => {
+  const user = UserModel.findOne({
+    email: req.email
+  });
+  if (!user) {
+    res.status(200).json({
+      message:
+        'If your email exists in our database, you will receive a link to reset your password'
+    });
+  }
+
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateModifiedOnly: true });
+};
+
+exports.resetPassword = async (req, res, next) => {};

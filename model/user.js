@@ -74,13 +74,24 @@ const userSchema = new mongoose.Schema(
         message:
           'Passwords do not match. Please make sure both entries are the same.'
       }
-    }
+    },
+    passwordChangedAt: Date
   },
   {
     timestamps: true
   }
 );
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
 
+    return JWTTimestamp < changedTimestamp;
+  }
+  return false;
+};
 userSchema.methods.correctPassword = async (
   candidatePassword,
   userPassword

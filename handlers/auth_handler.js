@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { promisify } = require('util');
 const { UserModel } = require('../model/user');
-const AppError = require('../utils/apperror');
+const AppError = require('../utils/app_error');
 const sendEmail = require('../utils/email');
 
 function signJwtAsync(payload, secret, options) {

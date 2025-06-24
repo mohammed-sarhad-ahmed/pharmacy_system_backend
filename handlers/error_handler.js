@@ -1,7 +1,7 @@
-const AppError = require('../utils/apperror');
+const AppError = require('../utils/app_error');
 const {
   changeCamelCaseToNormalCase
-} = require('../utils/changeCamelCaseToNormalCase');
+} = require('../utils/change_camel_case_to_normal_case');
 
 const handleValidationErrorDB = (err) => {
   const errors = Object.values(err.errors).map((el) => el.message);

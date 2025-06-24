@@ -1,8 +1,8 @@
 const express = require('express');
 const { config } = require('dotenv');
-const authRouter = require('./routes/authroute');
-const AppError = require('./utils/apperror');
-const handleError = require('./handlers/errorhandler');
+const authRouter = require('./routes/auth_route');
+const AppError = require('./utils/app_error');
+const handleError = require('./handlers/error_handler');
 
 const app = express();
 

@@ -4,14 +4,14 @@ const {
   login,
   forgotPassword,
   resetPassword
-} = require('../handlers/authhandler');
+} = require('../handlers/auth_handler');
 
 const Router = express.Router();
 
 Router.post('/signup', signup);
 Router.post('/login', login);
 
-Router.post('/forgotpassword', forgotPassword);
-Router.patch('/resetpassword/:token', resetPassword);
+Router.post('/forgot-password', forgotPassword);
+Router.patch('/reset-password/:token', resetPassword);
 
 module.exports = Router;

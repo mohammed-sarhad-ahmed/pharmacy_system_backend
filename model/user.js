@@ -52,7 +52,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       index: true,
       required: [true, 'Phone number is required.'],
-      set: (v) => v.replace(/^\+9640/, '+964'),
+      set: (v) => {
+        v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
+        if (!v.startsWith('+964')) v = `+964${v}`;
+        return v;
+      },
       unique: true,
       validate: {
         validator: (v) => /^\+9647[578]\d{8}$/.test(v),
@@ -120,6 +124,8 @@ userSchema.set('toJSON', {
   transform: (_doc, ret, _options) => {
     delete ret.password;
     delete ret.passwordConfirm;
+    delete ret.passwordResetToken;
+    delete ret.passwordResetTokenExpires;
     delete ret.__v;
     return ret;
   }
@@ -129,6 +135,12 @@ userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
   this.passwordConfirm = undefined;
+  next();
+});
+
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 

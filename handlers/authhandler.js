@@ -1,9 +1,9 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { promisify } = require('util');
 const { UserModel } = require('../model/user');
 const AppError = require('../utils/apperror');
+const sendEmail = require('../utils/email');
 
 function signJwtAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
@@ -121,6 +121,30 @@ exports.forgotPassword = async (req, res, next) => {
 
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
+
+  const resetUrl = `${req.protocol}://${req.get('host')}/auth/resetpassword/${resetToken}`;
+  const message = `click the reset button that is not implemented yet or send a request to this ${resetUrl}`;
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: 'changing your password only valid for 10 min',
+      message
+    });
+
+    res.status(200).json({
+      message:
+        'If your email exists in our database, you will receive a link to reset your password'
+    });
+  } catch (err) {
+    user.passwordResetTokenExpire = undefined;
+    user.passwordResetToken = undefined;
+    await user.save({ validateModifiedOnly: true });
+    return next(
+      new AppError(
+        'Something went wrong during sending the email please try again later!'
+      )
+    );
+  }
 };
 
 exports.resetPassword = async (req, res, next) => {};

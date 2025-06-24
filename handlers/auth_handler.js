@@ -1,17 +1,52 @@
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { promisify } = require('util');
+const crypto = require('crypto');
 const { UserModel } = require('../model/user');
 const AppError = require('../utils/app_error');
 const sendEmail = require('../utils/email');
 
-function signJwtAsync(payload, secret, options) {
+function signTokenAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
     jwt.sign(payload, secret, options, (err, token) => {
-      if (err) reject(err);
-      else resolve(token);
+      if (err) return reject(err);
+      resolve(token);
     });
   });
+}
+
+async function logUserIn(res, next, user, sendUser = false) {
+  try {
+    const token = await signTokenAsync(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXP }
+    );
+
+    let data;
+
+    if (sendUser) {
+      data = {
+        user,
+        token
+      };
+    } else {
+      data = {
+        token
+      };
+    }
+    res.status(201).json({
+      status: 'success',
+      data
+    });
+  } catch (err) {
+    return next(
+      new AppError(
+        'Something went wrong while logging you in. Please try again later.',
+        500
+      )
+    );
+  }
 }
 
 exports.signup = async (req, res, next) => {
@@ -23,19 +58,13 @@ exports.signup = async (req, res, next) => {
   }
   const newUser = await UserModel.create({
     name,
-    email,
+    email: email.toLowerCase().trim(),
     phoneNumber,
     password,
     passwordConfirm,
     role
   });
-  newUser.password = undefined;
-  res.status(201).json({
-    status: 'success',
-    data: {
-      newUser
-    }
-  });
+  await logUserIn(res, next, newUser, true);
 };
 
 exports.login = async (req, res, next) => {
@@ -46,18 +75,13 @@ exports.login = async (req, res, next) => {
   if (!validator.isEmail(email)) {
     return next(new AppError('Incorrect email or password', 401));
   }
-  const user = UserModel.find();
+  const user = await UserModel.findOne({
+    email: email.toLowerCase().trim()
+  }).select('+password');
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
-  const token = await signJwtAsync({ id: user._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXP
-  });
-
-  res.status(200).json({
-    status: 'success',
-    token
-  });
+  await logUserIn(res, next, user, true);
 };
 
 exports.protectRoute = async (req, res, next) => {
@@ -109,8 +133,9 @@ exports.restrictTo = (...roles) => {
 };
 
 exports.forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
   const user = await UserModel.findOne({
-    email: req.body.email
+    email: email.toLowerCase().trim()
   });
   if (!user) {
     return res.status(200).json({
@@ -149,4 +174,26 @@ exports.forgotPassword = async (req, res, next) => {
   }
 };
 
-exports.resetPassword = async (req, res, next) => {};
+exports.resetPassword = async (req, res, next) => {
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await UserModel.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetTokenExpires: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return next(new AppError('token is either invalid or expired.', 400));
+  }
+
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  user.passwordResetToken = undefined;
+  user.passwordResetTokenExpires = undefined;
+  await user.save();
+
+  await logUserIn(res, next, user);
+};

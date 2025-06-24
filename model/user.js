@@ -120,6 +120,8 @@ userSchema.set('toJSON', {
   transform: (_doc, ret, _options) => {
     delete ret.password;
     delete ret.passwordConfirm;
+    delete ret.passwordResetToken;
+    delete ret.passwordResetTokenExpires;
     delete ret.__v;
     return ret;
   }
@@ -130,6 +132,11 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, 10);
   this.passwordConfirm = undefined;
   next();
+});
+
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+  this.passwordChangedAt = Date.now() - 1000;
 });
 
 const UserModel = mongoose.model('User', userSchema);

@@ -115,7 +115,7 @@ exports.forgotPassword = async (req, res, next) => {
   if (!user) {
     return res.status(200).json({
       message:
-        'If your email exists in our database, you will receive a link to reset your password'
+        'If your email exists in our database, you have received a link to reset your password'
     });
   }
 
@@ -134,7 +134,7 @@ exports.forgotPassword = async (req, res, next) => {
 
     res.status(200).json({
       message:
-        'If your email exists in our database, you will receive a link to reset your password'
+        'If your email exists in our database, you have received a link to reset your password'
     });
   } catch (err) {
     user.passwordResetTokenExpires = undefined;

@@ -52,7 +52,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       index: true,
       required: [true, 'Phone number is required.'],
-      set: (v) => v.replace(/^\+9640/, '+964'),
+      set: (v) => {
+        v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
+        if (!v.startsWith('+964')) v = `+964${v}`;
+        return v;
+      },
       unique: true,
       validate: {
         validator: (v) => /^\+9647[578]\d{8}$/.test(v),

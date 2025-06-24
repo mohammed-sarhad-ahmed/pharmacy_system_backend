@@ -109,11 +109,11 @@ exports.restrictTo = (...roles) => {
 };
 
 exports.forgotPassword = async (req, res, next) => {
-  const user = UserModel.findOne({
-    email: req.email
+  const user = await UserModel.findOne({
+    email: req.body.email
   });
   if (!user) {
-    res.status(200).json({
+    return res.status(200).json({
       message:
         'If your email exists in our database, you will receive a link to reset your password'
     });
@@ -123,11 +123,12 @@ exports.forgotPassword = async (req, res, next) => {
   await user.save({ validateModifiedOnly: true });
 
   const resetUrl = `${req.protocol}://${req.get('host')}/auth/resetpassword/${resetToken}`;
-  const message = `click the reset button that is not implemented yet or send a request to this ${resetUrl}`;
+  const message = `You requested a password reset. Submit a request to: ${resetUrl}.\n\nThis link is valid for 10 minutes.`;
+
   try {
     await sendEmail({
       email: user.email,
-      subject: 'changing your password only valid for 10 min',
+      subject: 'Password reset (valid for 10 minutes)',
       message
     });
 
@@ -136,12 +137,12 @@ exports.forgotPassword = async (req, res, next) => {
         'If your email exists in our database, you will receive a link to reset your password'
     });
   } catch (err) {
-    user.passwordResetTokenExpire = undefined;
+    user.passwordResetTokenExpires = undefined;
     user.passwordResetToken = undefined;
     await user.save({ validateModifiedOnly: true });
     return next(
       new AppError(
-        'Something went wrong during sending the email please try again later!'
+        'Something went wrong during sending the email. Please try again later!'
       )
     );
   }

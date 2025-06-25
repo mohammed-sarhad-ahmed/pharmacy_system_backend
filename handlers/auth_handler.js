@@ -196,3 +196,18 @@ exports.resetPassword = async (req, res, next) => {
 
   await logUserIn(res, next, user);
 };
+
+exports.updatePassword = async (req, res, next) => {
+  const user = await UserModel.findOne({
+    email: req.user.email
+  });
+
+  await user.correctPassword(req.body.oldPassword, user.password);
+
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+
+  await user.save();
+
+  await logUserIn(res, next, user);
+};

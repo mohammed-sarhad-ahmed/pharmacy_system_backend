@@ -3,7 +3,9 @@ module.exports = {
     es2022: true,
     node: true
   },
+  parser: '@babel/eslint-parser',
   parserOptions: {
+    requireConfigFile: false,
     ecmaVersion: 2022,
     sourceType: 'script'
   },
@@ -22,6 +24,15 @@ module.exports = {
     'no-underscore-dangle': 'off',
     'class-methods-use-this': 'off',
     'prefer-destructuring': ['error', { object: true, array: false }],
-    'no-unused-vars': ['error', { argsIgnorePattern: 'req|res|next|val|_' }]
+    'no-unused-vars': ['error', { argsIgnorePattern: 'req|res|next|val|_' }],
+    // Catch arrow functions assigned to Mongoose schema methods/statics
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "AssignmentExpression > MemberExpression.object[property.name='methods'] > ArrowFunctionExpression",
+        message: 'Avoid arrow functions in Mongoose methods.'
+      }
+    ]
   }
 };

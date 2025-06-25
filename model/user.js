@@ -108,13 +108,13 @@ userSchema.methods.correctPassword = async (
   await bcrypt.compare(candidatePassword, userPassword);
 };
 
-userSchema.methods.createPasswordResetToken = () => {
+userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-
+  console.log('db', resetToken);
   this.passwordResetTokenExpires = 1000 * 60 * 10 + Date.now();
 
   return resetToken;
@@ -140,6 +140,7 @@ userSchema.pre('save', async function (next) {
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || this.isNew) return next();
+  console.log(1);
   this.passwordChangedAt = Date.now() - 1000;
   next();
 });

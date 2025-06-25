@@ -9,6 +9,7 @@ const sendEmail = require('../utils/email');
 function signTokenAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
     jwt.sign(payload, secret, options, (err, token) => {
+      console.log(2);
       if (err) return reject(err);
       resolve(token);
     });
@@ -147,7 +148,7 @@ exports.forgotPassword = async (req, res, next) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
 
-  const resetUrl = `${req.protocol}://${req.get('host')}/auth/resetpassword/${resetToken}`;
+  const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password/${resetToken}`;
   const message = `You requested a password reset. Submit a request to: ${resetUrl}.\n\nThis link is valid for 10 minutes.`;
 
   try {
@@ -179,7 +180,6 @@ exports.resetPassword = async (req, res, next) => {
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
-
   const user = await UserModel.findOne({
     passwordResetToken: hashedToken,
     passwordResetTokenExpires: { $gt: Date.now() }

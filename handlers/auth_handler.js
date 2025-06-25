@@ -15,7 +15,7 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
-async function logUserIn(res, next, user, sendUser = false) {
+async function logUserIn(res, next, user, statusCode, sendUser = false) {
   try {
     const token = await signTokenAsync(
       { id: user.id },
@@ -35,7 +35,7 @@ async function logUserIn(res, next, user, sendUser = false) {
         token
       };
     }
-    res.status(201).json({
+    res.status(statusCode).json({
       status: 'success',
       data
     });
@@ -64,7 +64,7 @@ exports.signup = async (req, res, next) => {
     passwordConfirm,
     role
   });
-  await logUserIn(res, next, newUser, true);
+  await logUserIn(res, next, newUser, 201, true);
 };
 
 exports.login = async (req, res, next) => {
@@ -72,7 +72,7 @@ exports.login = async (req, res, next) => {
   if (!email.trim() || !password.trim()) {
     return next(new AppError('Please provide email and password.', 400));
   }
-  if (!validator.isEmail(email)) {
+  if (!validator.isEmail(email.trim().toLowerCase())) {
     return next(new AppError('Incorrect email or password', 401));
   }
   const user = await UserModel.findOne({
@@ -81,7 +81,7 @@ exports.login = async (req, res, next) => {
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
-  await logUserIn(res, next, user, true);
+  await logUserIn(res, next, user, 200, true);
 };
 
 exports.protectRoute = async (req, res, next) => {
@@ -194,13 +194,11 @@ exports.resetPassword = async (req, res, next) => {
   user.passwordResetTokenExpires = undefined;
   await user.save();
 
-  await logUserIn(res, next, user);
+  await logUserIn(res, next, user, 200);
 };
 
 exports.updatePassword = async (req, res, next) => {
-  const user = await UserModel.findOne({
-    email: req.user.email
-  });
+  const user = await UserModel.findById(req.user.id).select('+password');
 
   await user.correctPassword(req.body.oldPassword, user.password);
 
@@ -209,5 +207,5 @@ exports.updatePassword = async (req, res, next) => {
 
   await user.save();
 
-  await logUserIn(res, next, user);
+  await logUserIn(res, next, user, 200);
 };

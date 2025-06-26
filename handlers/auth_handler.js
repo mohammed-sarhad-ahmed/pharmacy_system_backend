@@ -15,6 +15,16 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
+function filterObj(obj, ...allowedFields) {
+  const newObj = {};
+  Object.keys(obj).forEach((field) => {
+    if (allowedFields.includes(field)) {
+      newObj[field] = obj[field];
+    }
+  });
+  return newObj;
+}
+
 async function logUserIn(res, next, user, statusCode, sendUser = false) {
   try {
     const token = await signTokenAsync(
@@ -36,7 +46,7 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
       };
     }
     res.status(statusCode).json({
-      status: 'success',
+      status: 'Success',
       data
     });
   } catch (err) {
@@ -223,4 +233,38 @@ exports.updateMyPassword = async (req, res, next) => {
   await user.save();
 
   await logUserIn(res, next, user, 200);
+};
+
+exports.updateMe = async (req, res, next) => {
+  if (req.body.passwordConfirm || req.body.password) {
+    return next(
+      new AppError(
+        'You can not use this route to change password, Please use /auth/update-my-password',
+        400
+      )
+    );
+  }
+
+  if (req.body.email) {
+    return next(
+      new AppError(
+        'You can not use this route to change email, Please use /auth/update-my-email'
+      )
+    );
+  }
+  if (req.body.role?.toLowerCase() === 'admin') {
+    return next(new AppError('You cannot assign yourself as admin.', 403));
+  }
+  const data = filterObj(req.body, 'name', 'phoneNumberOne', 'PhoneNumberTwo');
+  const user = await UserModel.findByIdAndUpdate(req.user.id, data, {
+    runValidators: true,
+    new: true
+  });
+
+  res.status(200).json({
+    message: 'Success',
+    data: {
+      user
+    }
+  });
 };

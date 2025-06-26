@@ -212,9 +212,6 @@ exports.updateMyPassword = async (req, res, next) => {
   }
 
   const user = await UserModel.findById(req.user.id).select('+password');
-  if (!user) {
-    return next(new AppError('User not found', 404));
-  }
 
   const isCorrect = await user.correctPassword(currentPassword, user.password);
   if (!isCorrect) {

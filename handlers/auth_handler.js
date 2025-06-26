@@ -137,7 +137,14 @@ exports.forgotPassword = async (req, res, next) => {
   const user = await UserModel.findOne({
     email: email.toLowerCase().trim()
   });
+
   if (!user) {
+    const randomDelay = Math.floor(1823 + Math.random() * 1000);
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, randomDelay);
+    });
+
     return res.status(200).json({
       message:
         'If your email exists in our database, you have received a link to reset your password'
@@ -198,13 +205,24 @@ exports.resetPassword = async (req, res, next) => {
 };
 
 exports.updateMyPassword = async (req, res, next) => {
+  const { currentPassword, password, passwordConfirm } = req.body;
+
+  if (!currentPassword || !password || !passwordConfirm) {
+    return next(new AppError('Please provide all password fields', 400));
+  }
+
   const user = await UserModel.findById(req.user.id).select('+password');
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
 
-  await user.correctPassword(req.body.oldPassword, user.password);
+  const isCorrect = await user.correctPassword(currentPassword, user.password);
+  if (!isCorrect) {
+    return next(new AppError('Your current password is not correct', 401));
+  }
 
-  user.password = req.body.password;
-  user.passwordConfirm = req.body.passwordConfirm;
-
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
   await user.save();
 
   await logUserIn(res, next, user, 200);

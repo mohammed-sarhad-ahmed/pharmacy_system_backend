@@ -96,7 +96,11 @@ const userSchema = new mongoose.Schema(
     },
     passwordChangedAt: Date,
     passwordResetToken: String,
-    passwordResetTokenExpires: Date
+    passwordResetTokenExpires: Date,
+    active: {
+      type: Boolean,
+      default: false
+    }
   },
   {
     timestamps: true
@@ -141,6 +145,7 @@ userSchema.set('toJSON', {
     delete ret.passwordResetToken;
     delete ret.passwordResetTokenExpires;
     delete ret.__v;
+    delete ret.active;
     return ret;
   }
 });

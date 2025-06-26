@@ -268,3 +268,18 @@ exports.updateMe = async (req, res, next) => {
     }
   });
 };
+
+exports.deleteMe = async (req, res, next) => {
+  await UserModel.findByIdAndUpdate(req.user.id, {
+    active: true
+  });
+  res.status(204).json({
+    message: 'Success'
+  });
+};
+
+exports.updateMyEmail = async (req, res, next) => {
+  res.status(204).json({
+    message: 'not implemented yet!'
+  });
+};

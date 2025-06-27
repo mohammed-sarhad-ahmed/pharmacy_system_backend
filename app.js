@@ -1,5 +1,6 @@
 const express = require('express');
 const { config } = require('dotenv');
+const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const xssClean = require('xss-clean');
@@ -7,7 +8,6 @@ const helmet = require('helmet');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
-const hpp = require('hpp');
 
 const app = express();
 

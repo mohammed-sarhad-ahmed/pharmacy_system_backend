@@ -48,10 +48,24 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    phoneNumber: {
+    phoneNumberOne: {
       type: String,
       index: true,
-      required: [true, 'Phone number is required.'],
+      required: [true, 'First Phone number is required.'],
+      set: (v) => {
+        v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
+        if (!v.startsWith('+964')) v = `+964${v}`;
+        return v;
+      },
+      unique: true,
+      validate: {
+        validator: (v) => /^\+9647[578]\d{8}$/.test(v),
+        message: (props) => `${props.value} is not a valid Iraqi phone number.`
+      }
+    },
+    phoneNumberTwo: {
+      type: String,
+      index: true,
       set: (v) => {
         v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
         if (!v.startsWith('+964')) v = `+964${v}`;
@@ -82,7 +96,12 @@ const userSchema = new mongoose.Schema(
     },
     passwordChangedAt: Date,
     passwordResetToken: String,
-    passwordResetTokenExpires: Date
+    passwordResetTokenExpires: Date,
+    active: {
+      type: Boolean,
+      default: true,
+      select: false
+    }
   },
   {
     timestamps: true
@@ -108,13 +127,13 @@ userSchema.methods.correctPassword = async (
   await bcrypt.compare(candidatePassword, userPassword);
 };
 
-userSchema.methods.createPasswordResetToken = () => {
+userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-
+  console.log('db', resetToken);
   this.passwordResetTokenExpires = 1000 * 60 * 10 + Date.now();
 
   return resetToken;
@@ -127,6 +146,7 @@ userSchema.set('toJSON', {
     delete ret.passwordResetToken;
     delete ret.passwordResetTokenExpires;
     delete ret.__v;
+    delete ret.active;
     return ret;
   }
 });
@@ -141,6 +161,14 @@ userSchema.pre('save', async function (next) {
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || this.isNew) return next();
   this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  this.find({
+    active: { $ne: false }
+  });
+
   next();
 });
 

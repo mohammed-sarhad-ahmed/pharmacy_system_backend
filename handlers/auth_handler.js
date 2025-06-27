@@ -15,13 +15,35 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
-async function logUserIn(res, next, user, sendUser = false) {
+function filterObj(obj, ...allowedFields) {
+  const newObj = {};
+  Object.keys(obj).forEach((field) => {
+    if (allowedFields.includes(field)) {
+      newObj[field] = obj[field];
+    }
+  });
+  return newObj;
+}
+
+async function logUserIn(res, next, user, statusCode, sendUser = false) {
   try {
     const token = await signTokenAsync(
       { id: user.id },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXP }
     );
+    const cookieOptions = {
+      expires: new Date(
+        Date.now() + process.env.JWT_COOKIE_EXP * 1000 * 3600 * 24
+      ),
+      httpOnly: true
+    };
+
+    if (process.env.NODE_ENV === 'prod') {
+      cookieOptions.secure = true;
+    }
+
+    res.cookie('jwt', token, cookieOptions);
 
     let data;
 
@@ -35,8 +57,8 @@ async function logUserIn(res, next, user, sendUser = false) {
         token
       };
     }
-    res.status(201).json({
-      status: 'success',
+    res.status(statusCode).json({
+      status: 'Success',
       data
     });
   } catch (err) {
@@ -64,7 +86,7 @@ exports.signup = async (req, res, next) => {
     passwordConfirm,
     role
   });
-  await logUserIn(res, next, newUser, true);
+  await logUserIn(res, next, newUser, 201, true);
 };
 
 exports.login = async (req, res, next) => {
@@ -72,7 +94,7 @@ exports.login = async (req, res, next) => {
   if (!email.trim() || !password.trim()) {
     return next(new AppError('Please provide email and password.', 400));
   }
-  if (!validator.isEmail(email)) {
+  if (!validator.isEmail(email.trim().toLowerCase())) {
     return next(new AppError('Incorrect email or password', 401));
   }
   const user = await UserModel.findOne({
@@ -81,7 +103,7 @@ exports.login = async (req, res, next) => {
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
-  await logUserIn(res, next, user, true);
+  await logUserIn(res, next, user, 200, true);
 };
 
 exports.protectRoute = async (req, res, next) => {
@@ -137,7 +159,14 @@ exports.forgotPassword = async (req, res, next) => {
   const user = await UserModel.findOne({
     email: email.toLowerCase().trim()
   });
+
   if (!user) {
+    const randomDelay = Math.floor(1823 + Math.random() * 1000);
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, randomDelay);
+    });
+
     return res.status(200).json({
       message:
         'If your email exists in our database, you have received a link to reset your password'
@@ -147,7 +176,7 @@ exports.forgotPassword = async (req, res, next) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
 
-  const resetUrl = `${req.protocol}://${req.get('host')}/auth/resetpassword/${resetToken}`;
+  const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password/${resetToken}`;
   const message = `You requested a password reset. Submit a request to: ${resetUrl}.\n\nThis link is valid for 10 minutes.`;
 
   try {
@@ -179,7 +208,6 @@ exports.resetPassword = async (req, res, next) => {
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
-
   const user = await UserModel.findOne({
     passwordResetToken: hashedToken,
     passwordResetTokenExpires: { $gt: Date.now() }
@@ -195,5 +223,75 @@ exports.resetPassword = async (req, res, next) => {
   user.passwordResetTokenExpires = undefined;
   await user.save();
 
-  await logUserIn(res, next, user);
+  await logUserIn(res, next, user, 200);
+};
+
+exports.updateMyPassword = async (req, res, next) => {
+  const { currentPassword, password, passwordConfirm } = req.body;
+
+  if (!currentPassword || !password || !passwordConfirm) {
+    return next(new AppError('Please provide all password fields', 400));
+  }
+
+  const user = await UserModel.findById(req.user.id).select('+password');
+
+  const isCorrect = await user.correctPassword(currentPassword, user.password);
+  if (!isCorrect) {
+    return next(new AppError('Your current password is not correct', 401));
+  }
+
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
+  await user.save();
+
+  await logUserIn(res, next, user, 200);
+};
+
+exports.updateMe = async (req, res, next) => {
+  if (req.body.passwordConfirm || req.body.password) {
+    return next(
+      new AppError(
+        'You can not use this route to change password, Please use /auth/update-my-password',
+        400
+      )
+    );
+  }
+
+  if (req.body.email) {
+    return next(
+      new AppError(
+        'You can not use this route to change email, Please use /auth/update-my-email'
+      )
+    );
+  }
+  if (req.body.role?.toLowerCase() === 'admin') {
+    return next(new AppError('You cannot assign yourself as admin.', 403));
+  }
+  const data = filterObj(req.body, 'name', 'phoneNumberOne', 'PhoneNumberTwo');
+  const user = await UserModel.findByIdAndUpdate(req.user.id, data, {
+    runValidators: true,
+    new: true
+  });
+
+  res.status(200).json({
+    message: 'Success',
+    data: {
+      user
+    }
+  });
+};
+
+exports.deleteMe = async (req, res, next) => {
+  await UserModel.findByIdAndUpdate(req.user.id, {
+    active: false
+  });
+  res.status(204).json({
+    message: 'Success'
+  });
+};
+
+exports.updateMyEmail = async (req, res, next) => {
+  res.status(204).json({
+    message: 'not implemented yet!'
+  });
 };

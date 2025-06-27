@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
+const hpp = require('hpp');
 
 const app = express();
 
@@ -39,6 +40,12 @@ app.use(
 app.use(mongoSanitize());
 
 app.use(xssClean());
+
+app(
+  hpp({
+    whitelist: []
+  })
+);
 
 app.use('/auth', authRouter);
 

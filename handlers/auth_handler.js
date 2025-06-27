@@ -177,13 +177,13 @@ exports.forgotPassword = async (req, res, next) => {
   await user.save({ validateModifiedOnly: true });
 
   const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password/${resetToken}`;
-  const message = `You requested a password reset. Submit a request to: ${resetUrl}.\n\nThis link is valid for 10 minutes.`;
 
   try {
     await sendEmail({
       email: user.email,
+      name: user.name,
       subject: 'Password reset (valid for 10 minutes)',
-      message
+      resetUrl
     });
 
     res.status(200).json({

@@ -1,6 +1,7 @@
 const express = require('express');
 const { config } = require('dotenv');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
@@ -17,14 +18,21 @@ if (process.env.NODE_ENV === 'dev') {
   });
 }
 
+app.use(helmet());
+
 const limiter = rateLimit({
   limit: 100,
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!'
 });
+
 app.use(limiter);
 
-app.use(express.json());
+app.use(
+  express.json({
+    limit: '10kb'
+  })
+);
 
 app.use('/auth', authRouter);
 

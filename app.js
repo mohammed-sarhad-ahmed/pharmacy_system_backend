@@ -1,6 +1,8 @@
 const express = require('express');
 const { config } = require('dotenv');
 const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const xssClean = require('xss-clean');
 const helmet = require('helmet');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
@@ -33,6 +35,10 @@ app.use(
     limit: '10kb'
   })
 );
+
+app.use(mongoSanitize());
+
+app.use(xssClean());
 
 app.use('/auth', authRouter);
 

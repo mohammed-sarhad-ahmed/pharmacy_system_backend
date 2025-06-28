@@ -18,7 +18,7 @@ const handleDuplicateFieldsDB = (err) => {
   const [field, value] = Object.entries(err.errorResponse.keyValue)[0];
   const fieldNormalCase = changeCamelCaseToNormalCase(field);
   const message = `The ${fieldNormalCase} '${value}' is already in use.`;
-  return new AppError(message, 400, 'duplicated_field');
+  return new AppError(message, 400, 'duplicated_field_error');
 };
 
 const handleJWTError = () =>

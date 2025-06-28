@@ -15,6 +15,18 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
+const findUserWithResetToken = async (req) => {
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+  const user = await UserModel.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetTokenExpires: { $gt: Date.now() }
+  });
+  return user;
+};
+
 function filterObj(obj, ...allowedFields) {
   const newObj = {};
   Object.keys(obj).forEach((field) => {
@@ -250,14 +262,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
       error: 'No token was provided. This page is only for valid users'
     });
   }
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
-  const user = await UserModel.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetTokenExpires: { $gt: Date.now() }
-  });
+  const user = await findUserWithResetToken(req);
   if (!user) {
     return res.render('reset_password', {
       error: 'invalid token'
@@ -269,15 +274,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
 };
 
 exports.resetPassword = async (req, res, next) => {
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
-  const user = await UserModel.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetTokenExpires: { $gt: Date.now() }
-  });
-
+  const user = await findUserWithResetToken(req);
   if (!user) {
     return next(
       new AppError('Token is either invalid or expired.', 400, 'invalid_token')

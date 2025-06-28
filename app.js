@@ -20,6 +20,8 @@ if (process.env.NODE_ENV === 'dev') {
   });
 }
 
+app.set('view engine', 'ejs');
+
 // app.use(helmet());
 
 // const limiter = rateLimit({

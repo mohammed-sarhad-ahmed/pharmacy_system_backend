@@ -72,8 +72,15 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 }
 
 exports.signup = async (req, res, next) => {
-  const { name, email, phoneNumber, password, passwordConfirm, role } =
-    req.body;
+  const {
+    name,
+    email,
+    phoneNumberOne,
+    phoneNumberTwo,
+    password,
+    passwordConfirm,
+    role
+  } = req.body;
 
   if (req.body.role?.toLowerCase() === 'admin') {
     return next(new AppError('You cannot assign yourself as admin.', 403));
@@ -81,7 +88,8 @@ exports.signup = async (req, res, next) => {
   const newUser = await UserModel.create({
     name,
     email: email.toLowerCase().trim(),
-    phoneNumber,
+    phoneNumberOne,
+    phoneNumberTwo,
     password,
     passwordConfirm,
     role
@@ -176,7 +184,7 @@ exports.forgotPassword = async (req, res, next) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
 
-  const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password/${resetToken}`;
+  const resetUrl = `${req.protocol}://${req.get('host')}/auth/password-reset-page/${resetToken}`;
 
   try {
     await sendEmail({
@@ -203,6 +211,18 @@ exports.forgotPassword = async (req, res, next) => {
   }
 };
 
+exports.showResetPasswordPage = async (req, res, next) => {
+  const { token } = req.params;
+  if (!token) {
+    return res.render('reset_password', {
+      error: 'No token was provided. This page is only for valid users'
+    });
+  }
+  const { protocol } = req;
+  const host = req.get('host');
+  res.render('reset_password', { error: null, token, protocol, host });
+};
+
 exports.resetPassword = async (req, res, next) => {
   const hashedToken = crypto
     .createHash('sha256')
@@ -214,9 +234,8 @@ exports.resetPassword = async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new AppError('token is either invalid or expired.', 400));
+    return next(new AppError('Token is either invalid or expired.', 400));
   }
-
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
   user.passwordResetToken = undefined;

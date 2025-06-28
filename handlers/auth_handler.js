@@ -65,7 +65,8 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
     return next(
       new AppError(
         'Something went wrong while logging you in. Please try again later.',
-        500
+        500,
+        'server_error'
       )
     );
   }
@@ -83,7 +84,13 @@ exports.signup = async (req, res, next) => {
   } = req.body;
 
   if (req.body.role?.toLowerCase() === 'admin') {
-    return next(new AppError('You cannot assign yourself as admin.', 403));
+    return next(
+      new AppError(
+        'You cannot assign yourself as admin.',
+        403,
+        'permission_error'
+      )
+    );
   }
   const newUser = await UserModel.create({
     name,
@@ -100,16 +107,26 @@ exports.signup = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   const { email, password } = req.body;
   if (!email.trim() || !password.trim()) {
-    return next(new AppError('Please provide email and password.', 400));
+    return next(
+      new AppError(
+        'Please provide email and password.',
+        400,
+        'field_missing_error'
+      )
+    );
   }
   if (!validator.isEmail(email.trim().toLowerCase())) {
-    return next(new AppError('Incorrect email or password', 401));
+    return next(
+      new AppError('Incorrect email or password', 401, 'invalid_field_error')
+    );
   }
   const user = await UserModel.findOne({
     email: email.toLowerCase().trim()
   }).select('+password');
   if (!user || !(await user.correctPassword(password, user.password))) {
-    return next(new AppError('Incorrect email or password', 401));
+    return next(
+      new AppError('Incorrect email or password', 401, 'invalid_field_error')
+    );
   }
   await logUserIn(res, next, user, 200, true);
 };
@@ -124,7 +141,11 @@ exports.protectRoute = async (req, res, next) => {
   }
   if (!token) {
     return next(
-      new AppError('You are not logged in! Please log in to get access.', 401)
+      new AppError(
+        'You are not logged in! Please log in to get access.',
+        401,
+        'authentication_error'
+      )
     );
   }
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
@@ -134,14 +155,19 @@ exports.protectRoute = async (req, res, next) => {
     return next(
       new AppError(
         'The user belonging to this token does no longer exist.',
-        401
+        401,
+        'item_not_exist_error'
       )
     );
   }
 
   if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
-      new AppError('User recently changed password! Please log in again.', 401)
+      new AppError(
+        'User recently changed password! Please log in again.',
+        401,
+        'field_changed_error'
+      )
     );
   }
 
@@ -155,7 +181,11 @@ exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return next(
-        new AppError('You do not have permission to perform this action', 403)
+        new AppError(
+          'You do not have permission to perform this action',
+          403,
+          'permission_error'
+        )
       );
     }
     next();
@@ -205,7 +235,9 @@ exports.forgotPassword = async (req, res, next) => {
     console.error('Email send error:', err);
     return next(
       new AppError(
-        'Something went wrong during sending the email. Please try again later!'
+        'Something went wrong during sending the email. Please try again later!',
+        500,
+        'server_error'
       )
     );
   }
@@ -216,6 +248,19 @@ exports.showResetPasswordPage = async (req, res, next) => {
   if (!token) {
     return res.render('reset_password', {
       error: 'No token was provided. This page is only for valid users'
+    });
+  }
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+  const user = await UserModel.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetTokenExpires: { $gt: Date.now() }
+  });
+  if (!user) {
+    return res.render('reset_password', {
+      error: 'invalid token'
     });
   }
   const { protocol } = req;
@@ -234,7 +279,9 @@ exports.resetPassword = async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new AppError('Token is either invalid or expired.', 400));
+    return next(
+      new AppError('Token is either invalid or expired.', 400, 'invalid_token')
+    );
   }
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
@@ -249,14 +296,26 @@ exports.updateMyPassword = async (req, res, next) => {
   const { currentPassword, password, passwordConfirm } = req.body;
 
   if (!currentPassword || !password || !passwordConfirm) {
-    return next(new AppError('Please provide all password fields', 400));
+    return next(
+      new AppError(
+        'Please provide all password fields',
+        400,
+        'field_missing_error'
+      )
+    );
   }
 
   const user = await UserModel.findById(req.user.id).select('+password');
 
   const isCorrect = await user.correctPassword(currentPassword, user.password);
   if (!isCorrect) {
-    return next(new AppError('Your current password is not correct', 401));
+    return next(
+      new AppError(
+        'Your current password is not correct',
+        401,
+        'field_incorrect_error'
+      )
+    );
   }
 
   user.password = password;
@@ -271,7 +330,8 @@ exports.updateMe = async (req, res, next) => {
     return next(
       new AppError(
         'You can not use this route to change password, Please use /auth/update-my-password',
-        400
+        400,
+        'wrong_path_error'
       )
     );
   }
@@ -279,12 +339,19 @@ exports.updateMe = async (req, res, next) => {
   if (req.body.email) {
     return next(
       new AppError(
-        'You can not use this route to change email, Please use /auth/update-my-email'
+        'You can not use this route to change email, Please use /auth/update-my-email',
+        'wrong_path_error'
       )
     );
   }
   if (req.body.role?.toLowerCase() === 'admin') {
-    return next(new AppError('You cannot assign yourself as admin.', 403));
+    return next(
+      new AppError(
+        'You cannot assign yourself as admin.',
+        403,
+        'permission_error'
+      )
+    );
   }
   const data = filterObj(req.body, 'name', 'phoneNumberOne', 'PhoneNumberTwo');
   const user = await UserModel.findByIdAndUpdate(req.user.id, data, {

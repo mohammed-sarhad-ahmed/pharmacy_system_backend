@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
+const htmlTagSanitizer = require('./utils/html_tag_sanitizer');
 
 const app = express();
 
@@ -28,19 +29,21 @@ const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!'
 });
-
 app.use(limiter);
 
-app.use(
-  express.json({
-    limit: '10kb'
-  })
-);
+app.use(express.json({ limit: '10kb' }));
 
 app.use((req, res, next) => {
-  req.body = mongoSanitize(req.body);
+  for (const key in req.query) {
+    if (Array.isArray(req.query[key])) {
+      req.query[key] = req.query[key][0];
+    }
+  }
+
+  req.body = htmlTagSanitizer(mongoSanitize(req.body));
   req.query = mongoSanitize(req.query);
   req.params = mongoSanitize(req.params);
+
   next();
 });
 

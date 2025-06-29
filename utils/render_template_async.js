@@ -4,7 +4,6 @@ const mjml = require('mjml');
 async function renderTemplateAsync(templatePath, data) {
   let template = await fs.readFile(templatePath, 'utf8');
 
-  // eslint-disable-next-line guard-for-in
   for (const key in data) {
     template = template.replace(new RegExp(`{{${key}}}`, 'g'), data[key]);
   }

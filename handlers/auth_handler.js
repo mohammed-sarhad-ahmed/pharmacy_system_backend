@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { UserModel } = require('../model/user');
 const AppError = require('../utils/app_error');
 const sendEmail = require('../utils/email');
+const htmlTagSanitizer = require('../utils/html_tag_sanitizer');
 
 function signTokenAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
@@ -256,8 +257,8 @@ exports.forgotPassword = async (req, res, next) => {
 };
 
 exports.showResetPasswordPage = async (req, res, next) => {
-  const { token } = req.params;
-  if (!token) {
+  const token = htmlTagSanitizer(req.params.token);
+  if (!token || token.trim() === '') {
     return res.render('reset_password', {
       error: 'No token was provided. This page is only for valid users'
     });

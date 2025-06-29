@@ -257,10 +257,9 @@ exports.showResetPasswordPage = async (req, res, next) => {
     });
   }
   const user = await findUserWithResetToken(req);
+
   if (!user) {
-    return res.render('reset_password', {
-      error: 'invalid token'
-    });
+    return res.render('invalid_reset_token');
   }
   const { protocol } = req;
   const host = req.get('host');
@@ -279,8 +278,9 @@ exports.resetPassword = async (req, res, next) => {
   user.passwordResetToken = undefined;
   user.passwordResetTokenExpires = undefined;
   await user.save();
-
-  await logUserIn(res, next, user, 200);
+  await res.status(200).json({
+    status: 'success'
+  });
 };
 
 exports.updateMyPassword = async (req, res, next) => {

@@ -23,7 +23,7 @@ if (process.env.NODE_ENV === 'dev') {
 
 app.set('view engine', 'ejs');
 
-app.use(cookieParser);
+app.use(cookieParser());
 
 app.use(helmet());
 
@@ -46,9 +46,10 @@ app.use((req, res, next) => {
   req.body = htmlTagSanitizer(mongoSanitize(req.body));
   req.query = mongoSanitize(req.query);
   req.params = mongoSanitize(req.params);
-
   next();
 });
+
+app.use(express.static('public'));
 
 app.use('/auth', authRouter);
 

@@ -3,6 +3,7 @@ const { config } = require('dotenv');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('mongo-sanitize');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
@@ -21,6 +22,8 @@ if (process.env.NODE_ENV === 'dev') {
 }
 
 app.set('view engine', 'ejs');
+
+app.use(cookieParser);
 
 app.use(helmet());
 

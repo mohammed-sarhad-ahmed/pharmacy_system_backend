@@ -58,22 +58,18 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 
     res.cookie('jwt', token, cookieOptions);
 
-    let data;
-
     if (sendUser) {
-      data = {
-        user,
-        token
-      };
+      res.status(statusCode).json({
+        status: 'Success',
+        data: {
+          user
+        }
+      });
     } else {
-      data = {
-        token
-      };
+      res.status(statusCode).json({
+        status: 'success'
+      });
     }
-    res.status(statusCode).json({
-      status: 'Success',
-      data
-    });
   } catch (err) {
     return next(
       new AppError(
@@ -146,11 +142,8 @@ exports.login = async (req, res, next) => {
 
 exports.protectRoute = async (req, res, next) => {
   let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
+  if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
   if (!token) {
     return next(

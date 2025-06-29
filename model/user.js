@@ -67,10 +67,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       index: true,
       set: (v) => {
+        if (!v) return undefined;
         v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
         if (!v.startsWith('+964')) v = `+964${v}`;
         return v;
       },
+      sparse: true,
       unique: true,
       validate: {
         validator: (v) => /^\+9647[578]\d{8}$/.test(v),

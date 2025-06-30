@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { promisify } = require('util');
-const crypto = require('crypto');
 const { UserModel } = require('../model/user');
 const AppError = require('../utils/app_error');
-const sendEmail = require('../utils/email');
+/* ignore next line if your are getting a waring vscode is being stupid */
+const ResetEmail = require('../utils/reset_email');
+const VerifyEmail = require('../utils/email_verification');
 const htmlTagSanitizer = require('../utils/html_tag_sanitizer');
+const generateSecureCode = require('../utils/generate_secure_code');
+const shaHash = require('../utils/sha_hash');
 
 function signTokenAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
@@ -16,15 +19,21 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
-const findUserWithResetToken = async (req) => {
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
-  const user = await UserModel.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetTokenExpires: { $gt: Date.now() }
-  });
+const findUserWithCode = async (code, type) => {
+  const hashedToken = shaHash(code);
+  let options = {};
+  if (type === 'password_reset') {
+    options = {
+      passwordResetToken: hashedToken,
+      passwordResetTokenExpires: { $gt: Date.now() }
+    };
+  } else if (type === 'email_verification') {
+    options = {
+      emailVerificationCode: hashedToken,
+      emailVerificationExpire: { $gt: Date.now() }
+    };
+  }
+  const user = await UserModel.findOne(options);
   return user;
 };
 
@@ -101,6 +110,9 @@ exports.signup = async (req, res, next) => {
       )
     );
   }
+  const code = generateSecureCode(6);
+  const codeExpire = new Date(Date.now() + 1000 * 10);
+
   const newUser = await UserModel.create({
     name,
     email: email.toLowerCase().trim(),
@@ -108,9 +120,32 @@ exports.signup = async (req, res, next) => {
     phoneNumberTwo,
     password,
     passwordConfirm,
-    role
+    role,
+    emailVerificationCode: shaHash(code),
+    emailVerificationExpire: codeExpire
   });
-  await logUserIn(res, next, newUser, 201, true);
+  try {
+    const { sendEmail } = new VerifyEmail(
+      '../emails/reset_password_email.mjml',
+      newUser.name,
+      newUser.email,
+      'Email Verification',
+      code
+    );
+    await sendEmail();
+  } catch (err) {
+    newUser.emailVerificationExpire = undefined;
+    newUser.emailVerificationCode = undefined;
+    await newUser.save({ validateModifiedOnly: true });
+    console.error('Email send error:', err);
+    return next(
+      new AppError(
+        'Something went wrong during sending the email. Please try again later!',
+        500,
+        'server_error'
+      )
+    );
+  }
 };
 
 exports.login = async (req, res, next) => {
@@ -223,12 +258,14 @@ exports.forgotPassword = async (req, res, next) => {
   const resetUrl = `${req.protocol}://${req.get('host')}/auth/password-reset-page/${resetToken}`;
 
   try {
-    await sendEmail({
-      email: user.email,
-      name: user.name,
-      subject: 'Password reset (valid for 10 minutes)',
+    const { sendEmail } = new ResetEmail(
+      '../emails/reset_password_email.mjml',
+      user.name,
+      user.email,
+      'Password Reset',
       resetUrl
-    });
+    );
+    await sendEmail();
 
     res.status(200).json({
       message:
@@ -256,7 +293,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
       error: 'No token was provided. This page is only for valid users'
     });
   }
-  const user = await findUserWithResetToken(req);
+  const user = await findUserWithCode(req.params.token, 'email_verification');
 
   if (!user) {
     return res.render('invalid_reset_token');
@@ -267,7 +304,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
 };
 
 exports.resetPassword = async (req, res, next) => {
-  const user = await findUserWithResetToken(req);
+  const user = await findUserWithCode(req.params.token, 'email_verification');
   if (!user) {
     return next(
       new AppError('Token is either invalid or expired.', 400, 'invalid_token')
@@ -355,6 +392,20 @@ exports.updateMe = async (req, res, next) => {
     data: {
       user
     }
+  });
+};
+
+exports.verifyEmail = async (req, res, next) => {
+  const user = findUserWithCode(req.params.emailVerificationCode);
+  if (!user) {
+    return next(
+      'The code you have provided is either incorrect or expired, please send another request',
+      400,
+      'email_verification_error'
+    );
+  }
+  res.status(200).json({
+    message: 'email verification successful'
   });
 };
 

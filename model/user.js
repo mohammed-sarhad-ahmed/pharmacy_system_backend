@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const shaHash = require('../utils/sha_hash');
 
 const userSchema = new mongoose.Schema(
   {
@@ -99,6 +100,8 @@ const userSchema = new mongoose.Schema(
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetTokenExpires: Date,
+    emailVerificationCode: String,
+    emailVerificationExpire: Date,
     active: {
       type: Boolean,
       default: true,
@@ -131,10 +134,7 @@ userSchema.methods.correctPassword = async (
 
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
+  this.passwordResetToken = shaHash(resetToken);
   this.passwordResetTokenExpires = 1000 * 60 * 10 + Date.now();
 
   return resetToken;
@@ -148,12 +148,15 @@ userSchema.set('toJSON', {
     delete ret.passwordResetTokenExpires;
     delete ret.__v;
     delete ret.active;
+    delete ret.emailVerificationCode;
+    delete ret.emailVerificationExpire;
     return ret;
   }
 });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+  // we need await do not remove it vscode is being stupid
   this.password = await bcrypt.hash(this.password, 10);
   this.passwordConfirm = undefined;
   next();

@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    phoneNumberOne: {
+    phoneNumber: {
       type: String,
       index: true,
       required: [true, 'First Phone number is required.'],
@@ -58,22 +58,6 @@ const userSchema = new mongoose.Schema(
         if (!v.startsWith('+964')) v = `+964${v}`;
         return v;
       },
-      unique: true,
-      validate: {
-        validator: (v) => /^\+9647[578]\d{8}$/.test(v),
-        message: (props) => `${props.value} is not a valid Iraqi phone number.`
-      }
-    },
-    phoneNumberTwo: {
-      type: String,
-      index: true,
-      set: (v) => {
-        if (!v) return undefined;
-        v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
-        if (!v.startsWith('+964')) v = `+964${v}`;
-        return v;
-      },
-      sparse: true,
       unique: true,
       validate: {
         validator: (v) => /^\+9647[578]\d{8}$/.test(v),

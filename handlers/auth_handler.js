@@ -120,15 +120,8 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 }
 
 exports.signup = async (req, res, next) => {
-  const {
-    name,
-    email,
-    phoneNumberOne,
-    phoneNumberTwo,
-    password,
-    passwordConfirm,
-    role
-  } = req.body;
+  const { name, email, phoneNumber, password, passwordConfirm, role } =
+    req.body;
 
   if (req.body.role?.toLowerCase() === 'admin') {
     return next(
@@ -145,8 +138,7 @@ exports.signup = async (req, res, next) => {
   const newUser = await UserModel.create({
     name,
     email: email.toLowerCase().trim(),
-    phoneNumberOne,
-    phoneNumberTwo,
+    phoneNumber,
     password,
     passwordConfirm,
     role,
@@ -396,7 +388,7 @@ exports.updateMe = async (req, res, next) => {
       )
     );
   }
-  const data = filterObj(req.body, 'name', 'phoneNumberOne', 'PhoneNumberTwo');
+  const data = filterObj(req.body, 'name', 'phoneNumber');
   const user = await UserModel.findByIdAndUpdate(req.user.id, data, {
     runValidators: true,
     new: true

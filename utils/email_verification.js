@@ -15,7 +15,7 @@ class VerifyEmail extends Email {
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
-      to: this.userEmail,
+      to: this.to,
       subject: this.subject,
       html
     };

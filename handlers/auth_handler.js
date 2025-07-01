@@ -410,20 +410,25 @@ exports.updateMe = async (req, res, next) => {
 };
 
 exports.verifyEmail = async (req, res, next) => {
-  const user = findUserWithCode(
+  const user = await findUserWithCode(
     req.params.emailVerificationCode,
     'email_verification'
   );
   if (!user) {
     return next(
-      'The code you have provided is either incorrect or expired, please send another request',
-      400,
-      'email_verification_error'
+      new AppError(
+        'The code you have provided is either incorrect or expired, please send another request',
+        400,
+        'email_verification_error'
+      )
     );
   }
-  res.status(200).json({
-    message: 'email verification successful'
-  });
+  user.isEmailVerified = true;
+  user.emailVerificationExpire = undefined;
+  user.emailVerificationCode = undefined;
+  await user.save({ validateModifiedOnly: true });
+  console.log(`Email verified: ${user.email}`);
+  await logUserIn(res, next, user, 200, true);
 };
 
 exports.deleteMe = async (req, res, next) => {

@@ -21,14 +21,14 @@ function signTokenAsync(payload, secret, options) {
 
 const sendVerifyToken = async (user, code, res, next) => {
   try {
-    const { sendEmail } = new VerifyEmail(
-      '../emails/reset_password_email.mjml',
+    const verifyEmail = new VerifyEmail(
+      '../emails/email_verification.mjml',
       user.name,
       user.email,
       'Email Verification',
       code
     );
-    await sendEmail();
+    await verifyEmail.sendEmail();
     res.status(200).json({
       status: 'success'
     });
@@ -272,14 +272,14 @@ exports.forgotPassword = async (req, res, next) => {
   const resetUrl = `${req.protocol}://${req.get('host')}/auth/password-reset-page/${resetToken}`;
 
   try {
-    const { sendEmail } = new ResetEmail(
-      '../emails/reset_password_email.mjml',
+    const resetEmail = new ResetEmail(
+      '../emails/reset_password.mjml',
       user.name,
       user.email,
       'Password Reset',
       resetUrl
     );
-    await sendEmail();
+    await resetEmail.sendEmail();
 
     res.status(200).json({
       message:

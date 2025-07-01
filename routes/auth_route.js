@@ -10,7 +10,8 @@ const {
   deleteMe,
   updateMyEmail,
   showResetPasswordPage,
-  sendVerifyCodeAgain
+  sendVerifyCodeAgain,
+  verifyEmail
 } = require('../handlers/auth_handler');
 
 const Router = express.Router();
@@ -18,6 +19,7 @@ const Router = express.Router();
 Router.post('/signup', signup);
 Router.post('/login', login);
 Router.post('/forgot-password', forgotPassword);
+Router.post('/verify-email/:emailVerificationCode', verifyEmail);
 Router.get('/password-reset-page/:token', showResetPasswordPage);
 Router.get('/get-verification-code-again', sendVerifyCodeAgain);
 Router.patch('/reset-password/:token', resetPassword);

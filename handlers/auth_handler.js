@@ -140,7 +140,7 @@ exports.signup = async (req, res, next) => {
     );
   }
   const code = generateSecureCode(6);
-  const codeExpire = new Date(Date.now() + 1000 * 10);
+  const codeExpire = new Date(Date.now() + 1000 * 10 * 60);
 
   const newUser = await UserModel.create({
     name,

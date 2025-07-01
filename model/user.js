@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const shaHash = require('../utils/sha_hash');
 
 const userSchema = new mongoose.Schema(
   {
@@ -67,10 +68,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       index: true,
       set: (v) => {
+        if (!v) return undefined;
         v = v.replace(/^0/, '').replace(/^\+9640/, '+964');
         if (!v.startsWith('+964')) v = `+964${v}`;
         return v;
       },
+      sparse: true,
       unique: true,
       validate: {
         validator: (v) => /^\+9647[578]\d{8}$/.test(v),
@@ -97,6 +100,8 @@ const userSchema = new mongoose.Schema(
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetTokenExpires: Date,
+    emailVerificationCode: String,
+    emailVerificationExpire: Date,
     active: {
       type: Boolean,
       default: true,
@@ -129,11 +134,7 @@ userSchema.methods.correctPassword = async (
 
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
-  console.log('db', resetToken);
+  this.passwordResetToken = shaHash(resetToken);
   this.passwordResetTokenExpires = 1000 * 60 * 10 + Date.now();
 
   return resetToken;
@@ -147,12 +148,15 @@ userSchema.set('toJSON', {
     delete ret.passwordResetTokenExpires;
     delete ret.__v;
     delete ret.active;
+    delete ret.emailVerificationCode;
+    delete ret.emailVerificationExpire;
     return ret;
   }
 });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+  // we need await do not remove it vscode is being stupid
   this.password = await bcrypt.hash(this.password, 10);
   this.passwordConfirm = undefined;
   next();

@@ -1,7 +1,7 @@
 const nodeMailer = require('nodemailer');
 
-const sendEmail = async (options) => {
-  const transporter = nodeMailer.createTransport({
+class Email {
+  transporter = nodeMailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     auth: {
@@ -10,14 +10,12 @@ const sendEmail = async (options) => {
     }
   });
 
-  const mailOptions = {
-    from: 'Muhamad sarhad <muhamadsarhad999@gmail.com>',
-    to: options.email,
-    subject: options.subject,
-    text: options.message
-  };
+  constructor(emailTemplatePath, name, userEmail, subject) {
+    this.emailTemplatePath = emailTemplatePath;
+    this.name = name;
+    this.to = userEmail;
+    this.subject = subject;
+  }
+}
 
-  await transporter.sendMail(mailOptions);
-};
-
-module.exports = sendEmail;
+module.exports = Email;

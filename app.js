@@ -1,13 +1,13 @@
 const express = require('express');
 const { config } = require('dotenv');
-const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
-const xssClean = require('xss-clean');
+const mongoSanitize = require('mongo-sanitize');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const authRouter = require('./routes/auth_route');
 const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
+const htmlTagSanitizer = require('./utils/html_tag_sanitizer');
 
 const app = express();
 
@@ -21,6 +21,10 @@ if (process.env.NODE_ENV === 'dev') {
   });
 }
 
+app.set('view engine', 'ejs');
+
+app.use(cookieParser());
+
 app.use(helmet());
 
 const limiter = rateLimit({
@@ -28,24 +32,24 @@ const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!'
 });
-
 app.use(limiter);
 
-app.use(
-  express.json({
-    limit: '10kb'
-  })
-);
+app.use(express.json({ limit: '10kb' }));
 
-app.use(mongoSanitize());
+app.use((req, res, next) => {
+  for (const key in req.query) {
+    if (Array.isArray(req.query[key])) {
+      req.query[key] = req.query[key][0];
+    }
+  }
 
-app.use(xssClean());
+  req.body = htmlTagSanitizer(mongoSanitize(req.body));
+  req.query = mongoSanitize(req.query);
+  req.params = mongoSanitize(req.params);
+  next();
+});
 
-app(
-  hpp({
-    whitelist: []
-  })
-);
+app.use(express.static('public'));
 
 app.use('/auth', authRouter);
 

@@ -8,15 +8,20 @@ const {
   protectRoute,
   updateMe,
   deleteMe,
-  updateMyEmail
+  updateMyEmail,
+  showResetPasswordPage,
+  sendVerifyCodeAgain,
+  verifyEmail
 } = require('../handlers/auth_handler');
 
 const Router = express.Router();
 
 Router.post('/signup', signup);
 Router.post('/login', login);
-
 Router.post('/forgot-password', forgotPassword);
+Router.post('/verify-email/:emailVerificationCode', verifyEmail);
+Router.get('/password-reset-page/:token', showResetPasswordPage);
+Router.get('/get-verification-code-again', sendVerifyCodeAgain);
 Router.patch('/reset-password/:token', resetPassword);
 Router.patch('/update-my-password', protectRoute, updateMyPassword);
 Router.patch('/update-my-email', protectRoute, updateMyEmail);

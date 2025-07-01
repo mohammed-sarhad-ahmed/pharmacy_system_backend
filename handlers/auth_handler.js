@@ -1,10 +1,14 @@
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { promisify } = require('util');
-const crypto = require('crypto');
 const { UserModel } = require('../model/user');
 const AppError = require('../utils/app_error');
-const sendEmail = require('../utils/email');
+/* ignore next line if your are getting a waring vscode is being stupid */
+const ResetEmail = require('../utils/reset_email');
+const VerifyEmail = require('../utils/email_verification');
+const htmlTagSanitizer = require('../utils/html_tag_sanitizer');
+const generateSecureCode = require('../utils/generate_secure_code');
+const shaHash = require('../utils/sha_hash');
 
 function signTokenAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
@@ -14,6 +18,53 @@ function signTokenAsync(payload, secret, options) {
     });
   });
 }
+
+const sendVerifyToken = async (user, code, res, next) => {
+  try {
+    const verifyEmail = new VerifyEmail(
+      'email_verification',
+      user.name,
+      user.email,
+      'Email Verification',
+      code
+    );
+    await verifyEmail.sendEmail();
+    res.status(200).json({
+      status: 'success',
+      message: 'Please check your email for the verification code'
+    });
+  } catch (err) {
+    user.emailVerificationExpire = undefined;
+    user.emailVerificationCode = undefined;
+    await user.save({ validateModifiedOnly: true });
+    console.error('Email send error:', err);
+    return next(
+      new AppError(
+        'Something went wrong during sending the email. Please try again later!',
+        500,
+        'server_error'
+      )
+    );
+  }
+};
+
+const findUserWithCode = async (code, type) => {
+  const hashedToken = shaHash(code);
+  let options = {};
+  if (type === 'password_reset') {
+    options = {
+      passwordResetToken: hashedToken,
+      passwordResetTokenExpires: { $gt: Date.now() }
+    };
+  } else if (type === 'email_verification') {
+    options = {
+      emailVerificationCode: hashedToken,
+      emailVerificationExpire: { $gt: Date.now() }
+    };
+  }
+  const user = await UserModel.findOne(options);
+  return user;
+};
 
 function filterObj(obj, ...allowedFields) {
   const newObj = {};
@@ -45,78 +96,112 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 
     res.cookie('jwt', token, cookieOptions);
 
-    let data;
-
     if (sendUser) {
-      data = {
-        user,
-        token
-      };
+      res.status(statusCode).json({
+        status: 'success',
+        data: {
+          user
+        }
+      });
     } else {
-      data = {
-        token
-      };
+      res.status(statusCode).json({
+        status: 'success'
+      });
     }
-    res.status(statusCode).json({
-      status: 'Success',
-      data
-    });
   } catch (err) {
     return next(
       new AppError(
         'Something went wrong while logging you in. Please try again later.',
-        500
+        500,
+        'server_error'
       )
     );
   }
 }
 
 exports.signup = async (req, res, next) => {
-  const { name, email, phoneNumber, password, passwordConfirm, role } =
-    req.body;
-
-  if (req.body.role?.toLowerCase() === 'admin') {
-    return next(new AppError('You cannot assign yourself as admin.', 403));
-  }
-  const newUser = await UserModel.create({
+  const {
     name,
-    email: email.toLowerCase().trim(),
-    phoneNumber,
+    email,
+    phoneNumberOne,
+    phoneNumberTwo,
     password,
     passwordConfirm,
     role
+  } = req.body;
+
+  if (req.body.role?.toLowerCase() === 'admin') {
+    return next(
+      new AppError(
+        'You cannot assign yourself as admin.',
+        403,
+        'permission_error'
+      )
+    );
+  }
+  const code = generateSecureCode(6);
+  const codeExpire = new Date(Date.now() + 1000 * 10 * 60);
+
+  const newUser = await UserModel.create({
+    name,
+    email: email.toLowerCase().trim(),
+    phoneNumberOne,
+    phoneNumberTwo,
+    password,
+    passwordConfirm,
+    role,
+    emailVerificationCode: shaHash(code),
+    emailVerificationExpire: codeExpire
   });
-  await logUserIn(res, next, newUser, 201, true);
+  await sendVerifyToken(newUser, code, res, next);
 };
 
 exports.login = async (req, res, next) => {
   const { email, password } = req.body;
   if (!email.trim() || !password.trim()) {
-    return next(new AppError('Please provide email and password.', 400));
+    return next(
+      new AppError(
+        'Please provide email and password.',
+        400,
+        'field_missing_error'
+      )
+    );
   }
   if (!validator.isEmail(email.trim().toLowerCase())) {
-    return next(new AppError('Incorrect email or password', 401));
+    return next(
+      new AppError('Incorrect email or password', 401, 'invalid_field_error')
+    );
   }
   const user = await UserModel.findOne({
     email: email.toLowerCase().trim()
   }).select('+password');
+
   if (!user || !(await user.correctPassword(password, user.password))) {
-    return next(new AppError('Incorrect email or password', 401));
+    return next(
+      new AppError('Incorrect email or password', 401, 'invalid_field_error')
+    );
   }
+  if (!user.isEmailVerified) {
+    return next(
+      new AppError('Please verify you email', 400, 'email_not_verified_error')
+    );
+  }
+
   await logUserIn(res, next, user, 200, true);
 };
 
 exports.protectRoute = async (req, res, next) => {
   let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
+  if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
   if (!token) {
     return next(
-      new AppError('You are not logged in! Please log in to get access.', 401)
+      new AppError(
+        'You are not logged in! Please log in to get access.',
+        401,
+        'authentication_error'
+      )
     );
   }
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
@@ -126,14 +211,19 @@ exports.protectRoute = async (req, res, next) => {
     return next(
       new AppError(
         'The user belonging to this token does no longer exist.',
-        401
+        401,
+        'item_not_exist_error'
       )
     );
   }
 
   if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
-      new AppError('User recently changed password! Please log in again.', 401)
+      new AppError(
+        'User recently changed password! Please log in again.',
+        401,
+        'field_changed_error'
+      )
     );
   }
 
@@ -147,7 +237,11 @@ exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return next(
-        new AppError('You do not have permission to perform this action', 403)
+        new AppError(
+          'You do not have permission to perform this action',
+          403,
+          'permission_error'
+        )
       );
     }
     next();
@@ -176,15 +270,16 @@ exports.forgotPassword = async (req, res, next) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
 
-  const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password/${resetToken}`;
-  const message = `You requested a password reset. Submit a request to: ${resetUrl}.\n\nThis link is valid for 10 minutes.`;
-
+  const resetUrl = `${req.protocol}://${req.get('host')}/auth/password-reset-page/${resetToken}`;
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Password reset (valid for 10 minutes)',
-      message
-    });
+    const resetEmail = new ResetEmail(
+      'reset_password',
+      user.name,
+      user.email,
+      'Password Reset',
+      resetUrl
+    );
+    await resetEmail.sendEmail();
 
     res.status(200).json({
       message:
@@ -197,47 +292,73 @@ exports.forgotPassword = async (req, res, next) => {
     console.error('Email send error:', err);
     return next(
       new AppError(
-        'Something went wrong during sending the email. Please try again later!'
+        'Something went wrong during sending the email. Please try again later!',
+        500,
+        'server_error'
       )
     );
   }
 };
 
-exports.resetPassword = async (req, res, next) => {
-  const hashedToken = crypto
-    .createHash('sha256')
-    .update(req.params.token)
-    .digest('hex');
-  const user = await UserModel.findOne({
-    passwordResetToken: hashedToken,
-    passwordResetTokenExpires: { $gt: Date.now() }
-  });
+exports.showResetPasswordPage = async (req, res, next) => {
+  const token = htmlTagSanitizer(req.params.token);
+  if (!token || token.trim() === '') {
+    return res.render('reset_password', {
+      error: 'No token was provided. This page is only for valid users'
+    });
+  }
+  const user = await findUserWithCode(req.params.token, 'password_reset');
 
   if (!user) {
-    return next(new AppError('token is either invalid or expired.', 400));
+    return res.render('invalid_reset_token');
   }
+  const { protocol } = req;
+  const host = req.get('host');
+  res.render('reset_password', { error: null, token, protocol, host });
+};
 
+exports.resetPassword = async (req, res, next) => {
+  console.log(req.params.token);
+  const user = await findUserWithCode(req.params.token, 'password_reset');
+  if (!user) {
+    return next(
+      new AppError('Token is either invalid or expired.', 400, 'invalid_token')
+    );
+  }
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
   user.passwordResetToken = undefined;
   user.passwordResetTokenExpires = undefined;
   await user.save();
-
-  await logUserIn(res, next, user, 200);
+  await res.status(200).json({
+    status: 'success'
+  });
 };
 
 exports.updateMyPassword = async (req, res, next) => {
   const { currentPassword, password, passwordConfirm } = req.body;
 
   if (!currentPassword || !password || !passwordConfirm) {
-    return next(new AppError('Please provide all password fields', 400));
+    return next(
+      new AppError(
+        'Please provide all password fields',
+        400,
+        'field_missing_error'
+      )
+    );
   }
 
   const user = await UserModel.findById(req.user.id).select('+password');
 
   const isCorrect = await user.correctPassword(currentPassword, user.password);
   if (!isCorrect) {
-    return next(new AppError('Your current password is not correct', 401));
+    return next(
+      new AppError(
+        'Your current password is not correct',
+        401,
+        'field_incorrect_error'
+      )
+    );
   }
 
   user.password = password;
@@ -252,7 +373,8 @@ exports.updateMe = async (req, res, next) => {
     return next(
       new AppError(
         'You can not use this route to change password, Please use /auth/update-my-password',
-        400
+        400,
+        'wrong_path_error'
       )
     );
   }
@@ -260,12 +382,19 @@ exports.updateMe = async (req, res, next) => {
   if (req.body.email) {
     return next(
       new AppError(
-        'You can not use this route to change email, Please use /auth/update-my-email'
+        'You can not use this route to change email, Please use /auth/update-my-email',
+        'wrong_path_error'
       )
     );
   }
   if (req.body.role?.toLowerCase() === 'admin') {
-    return next(new AppError('You cannot assign yourself as admin.', 403));
+    return next(
+      new AppError(
+        'You cannot assign yourself as admin.',
+        403,
+        'permission_error'
+      )
+    );
   }
   const data = filterObj(req.body, 'name', 'phoneNumberOne', 'PhoneNumberTwo');
   const user = await UserModel.findByIdAndUpdate(req.user.id, data, {
@@ -274,11 +403,33 @@ exports.updateMe = async (req, res, next) => {
   });
 
   res.status(200).json({
-    message: 'Success',
+    message: 'success',
     data: {
       user
     }
   });
+};
+
+exports.verifyEmail = async (req, res, next) => {
+  const user = await findUserWithCode(
+    req.params.emailVerificationCode,
+    'email_verification'
+  );
+  if (!user) {
+    return next(
+      new AppError(
+        'The code you have provided is either incorrect or expired, please send another request',
+        400,
+        'email_verification_error'
+      )
+    );
+  }
+  user.isEmailVerified = true;
+  user.emailVerificationExpire = undefined;
+  user.emailVerificationCode = undefined;
+  await user.save({ validateModifiedOnly: true });
+  console.log(`Email verified: ${user.email}`);
+  await logUserIn(res, next, user, 200, true);
 };
 
 exports.deleteMe = async (req, res, next) => {
@@ -286,8 +437,36 @@ exports.deleteMe = async (req, res, next) => {
     active: false
   });
   res.status(204).json({
-    message: 'Success'
+    message: 'success'
   });
+};
+
+exports.sendVerifyCodeAgain = async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return next(
+      new AppError('Please provide an email', 400, 'field_missing_error')
+    );
+  }
+  const user = await UserModel.findOne({
+    email
+  });
+  if (!user) {
+    return next(
+      new AppError(
+        'User for this email is not found',
+        400,
+        'item_not_exist_error'
+      )
+    );
+  }
+  const code = generateSecureCode(6);
+  user.emailVerificationCode = shaHash(code);
+  user.emailVerificationExpire = new Date(Date.now() + 1000 * 10 * 60);
+  await user.save({
+    validateModifiedOnly: true
+  });
+  await sendVerifyToken(user, code, res, next);
 };
 
 exports.updateMyEmail = async (req, res, next) => {

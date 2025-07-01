@@ -306,7 +306,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
       error: 'No token was provided. This page is only for valid users'
     });
   }
-  const user = await findUserWithCode(req.params.token, 'email_verification');
+  const user = await findUserWithCode(req.params.token, 'password_reset');
 
   if (!user) {
     return res.render('invalid_reset_token');
@@ -317,7 +317,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
 };
 
 exports.resetPassword = async (req, res, next) => {
-  const user = await findUserWithCode(req.params.token, 'email_verification');
+  const user = await findUserWithCode(req.params.token, 'password_reset');
   if (!user) {
     return next(
       new AppError('Token is either invalid or expired.', 400, 'invalid_token')
@@ -409,7 +409,10 @@ exports.updateMe = async (req, res, next) => {
 };
 
 exports.verifyEmail = async (req, res, next) => {
-  const user = findUserWithCode(req.params.emailVerificationCode);
+  const user = findUserWithCode(
+    req.params.emailVerificationCode,
+    'email_verification'
+  );
   if (!user) {
     return next(
       'The code you have provided is either incorrect or expired, please send another request',

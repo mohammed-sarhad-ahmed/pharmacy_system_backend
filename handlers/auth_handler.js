@@ -19,6 +19,34 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
+const sendVerifyToken = async (user, code, res, next) => {
+  try {
+    const { sendEmail } = new VerifyEmail(
+      '../emails/reset_password_email.mjml',
+      user.name,
+      user.email,
+      'Email Verification',
+      code
+    );
+    await sendEmail();
+    res.status(200).json({
+      status: 'success'
+    });
+  } catch (err) {
+    user.emailVerificationExpire = undefined;
+    user.emailVerificationCode = undefined;
+    await user.save({ validateModifiedOnly: true });
+    console.error('Email send error:', err);
+    return next(
+      new AppError(
+        'Something went wrong during sending the email. Please try again later!',
+        500,
+        'server_error'
+      )
+    );
+  }
+};
+
 const findUserWithCode = async (code, type) => {
   const hashedToken = shaHash(code);
   let options = {};
@@ -69,7 +97,7 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 
     if (sendUser) {
       res.status(statusCode).json({
-        status: 'Success',
+        status: 'success',
         data: {
           user
         }
@@ -124,28 +152,7 @@ exports.signup = async (req, res, next) => {
     emailVerificationCode: shaHash(code),
     emailVerificationExpire: codeExpire
   });
-  try {
-    const { sendEmail } = new VerifyEmail(
-      '../emails/reset_password_email.mjml',
-      newUser.name,
-      newUser.email,
-      'Email Verification',
-      code
-    );
-    await sendEmail();
-  } catch (err) {
-    newUser.emailVerificationExpire = undefined;
-    newUser.emailVerificationCode = undefined;
-    await newUser.save({ validateModifiedOnly: true });
-    console.error('Email send error:', err);
-    return next(
-      new AppError(
-        'Something went wrong during sending the email. Please try again later!',
-        500,
-        'server_error'
-      )
-    );
-  }
+  await sendVerifyToken(newUser, code, res, next);
 };
 
 exports.login = async (req, res, next) => {
@@ -167,11 +174,18 @@ exports.login = async (req, res, next) => {
   const user = await UserModel.findOne({
     email: email.toLowerCase().trim()
   }).select('+password');
+
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(
       new AppError('Incorrect email or password', 401, 'invalid_field_error')
     );
   }
+  if (!user.isEmailVerified) {
+    return next(
+      new AppError('Please verify you email', 400, 'email_not_verified_error')
+    );
+  }
+
   await logUserIn(res, next, user, 200, true);
 };
 
@@ -388,7 +402,7 @@ exports.updateMe = async (req, res, next) => {
   });
 
   res.status(200).json({
-    message: 'Success',
+    message: 'success',
     data: {
       user
     }
@@ -414,8 +428,34 @@ exports.deleteMe = async (req, res, next) => {
     active: false
   });
   res.status(204).json({
-    message: 'Success'
+    message: 'success'
   });
+};
+
+exports.sendVerifyCodeAgain = async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return next('Please provide an email', 400, 'field_missing_error');
+  }
+  const user = UserModel.findOne({
+    email
+  });
+  if (!user) {
+    return next(
+      new AppError(
+        'User for this email is not found',
+        400,
+        'item_not_exist_error'
+      )
+    );
+  }
+  const code = generateSecureCode(6);
+  user.emailVerificationCode = shaHash(code);
+  user.emailVerificationExpire = new Date(Date.now() + 1000 * 10);
+  await user.save({
+    validateModifiedOnly: true
+  });
+  await sendVerifyToken(user, code, res, next);
 };
 
 exports.updateMyEmail = async (req, res, next) => {

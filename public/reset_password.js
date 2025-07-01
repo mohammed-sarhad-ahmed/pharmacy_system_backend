@@ -6,6 +6,11 @@ const passwordConfirm = document.getElementById('passwordConfirm');
 const clientError = document.getElementById('clientError');
 const container = document.querySelector('.container');
 
+const configEl = document.getElementById('app-config');
+const protocol = configEl.dataset.protocol;
+const host = configEl.dataset.host;
+const token = configEl.dataset.token;
+
 form.addEventListener('submit', async function (e) {
   e.preventDefault();
 
@@ -27,19 +32,17 @@ form.addEventListener('submit', async function (e) {
   showError('');
 
   try {
-    const res = await fetch(
-      `<%= protocol %>://<%= host %>/auth/reset-password/<%= token %>`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          password: pwd,
-          passwordConfirm: confirm
-        })
-      }
-    );
+    const url = `${protocol}://${host}/auth/reset-password/${token}`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        password: pwd,
+        passwordConfirm: confirm
+      })
+    });
 
     const data = await res.json();
 

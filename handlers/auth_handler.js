@@ -317,6 +317,7 @@ exports.showResetPasswordPage = async (req, res, next) => {
 };
 
 exports.resetPassword = async (req, res, next) => {
+  console.log(req.params.token);
   const user = await findUserWithCode(req.params.token, 'password_reset');
   if (!user) {
     return next(

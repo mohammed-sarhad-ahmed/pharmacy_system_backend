@@ -438,9 +438,11 @@ exports.deleteMe = async (req, res, next) => {
 exports.sendVerifyCodeAgain = async (req, res, next) => {
   const { email } = req.body;
   if (!email) {
-    return next('Please provide an email', 400, 'field_missing_error');
+    return next(
+      new AppError('Please provide an email', 400, 'field_missing_error')
+    );
   }
-  const user = UserModel.findOne({
+  const user = await UserModel.findOne({
     email
   });
   if (!user) {
@@ -454,7 +456,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
   }
   const code = generateSecureCode(6);
   user.emailVerificationCode = shaHash(code);
-  user.emailVerificationExpire = new Date(Date.now() + 1000 * 10);
+  user.emailVerificationExpire = new Date(Date.now() + 1000 * 10 * 60);
   await user.save({
     validateModifiedOnly: true
   });

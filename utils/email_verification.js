@@ -8,7 +8,7 @@ class VerifyEmail extends Email {
   }
 
   async sendEmail() {
-    const html = renderEmail(this.emailTemplatePath, {
+    const html = await renderEmail(this.emailTemplatePath, {
       name: this.name,
       code: this.code
     });

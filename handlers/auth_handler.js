@@ -30,7 +30,8 @@ const sendVerifyToken = async (user, code, res, next) => {
     );
     await verifyEmail.sendEmail();
     res.status(200).json({
-      status: 'success'
+      status: 'success',
+      message: 'Please check your email for the verification code'
     });
   } catch (err) {
     user.emailVerificationExpire = undefined;

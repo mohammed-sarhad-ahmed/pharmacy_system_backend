@@ -8,14 +8,14 @@ class ResetEmail extends Email {
   }
 
   async sendEmail() {
-    const html = renderEmail(this.emailTemplatePath, {
+    const html = await renderEmail(this.emailTemplatePath, {
       name: this.name,
       link: this.resetUrl
     });
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
-      to: this.userEmail,
+      to: this.to,
       subject: this.subject,
       html
     };

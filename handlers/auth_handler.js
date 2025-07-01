@@ -22,7 +22,7 @@ function signTokenAsync(payload, secret, options) {
 const sendVerifyToken = async (user, code, res, next) => {
   try {
     const verifyEmail = new VerifyEmail(
-      '../emails/email_verification.mjml',
+      'email_verification',
       user.name,
       user.email,
       'Email Verification',
@@ -270,10 +270,9 @@ exports.forgotPassword = async (req, res, next) => {
   await user.save({ validateModifiedOnly: true });
 
   const resetUrl = `${req.protocol}://${req.get('host')}/auth/password-reset-page/${resetToken}`;
-
   try {
     const resetEmail = new ResetEmail(
-      '../emails/reset_password.mjml',
+      'reset_password',
       user.name,
       user.email,
       'Password Reset',

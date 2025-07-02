@@ -476,7 +476,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 };
 
 exports.logout = async (req, res, next) => {
-  const user = UserModel.findById(req.user.id);
+  const user = await UserModel.findById(req.user.id);
   user.tokenVersion += 1;
   await user.save({
     validateModifiedOnly: true

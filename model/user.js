@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    tokenVersion: {
+      type: Number,
+      required: true
+    },
     role: {
       type: String,
       enum: ['pharmacy', 'supplier', 'delivery', 'admin'],
@@ -134,6 +138,7 @@ userSchema.set('toJSON', {
     delete ret.active;
     delete ret.emailVerificationCode;
     delete ret.emailVerificationExpire;
+    delete ret.tokenVersion;
     return ret;
   }
 });

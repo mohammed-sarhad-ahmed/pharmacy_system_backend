@@ -79,7 +79,7 @@ function filterObj(obj, ...allowedFields) {
 async function logUserIn(res, next, user, statusCode, sendUser = false) {
   try {
     const token = await signTokenAsync(
-      { id: user.id },
+      { id: user.id, tokenVersion: user.tokenVersion },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXP }
     );
@@ -142,6 +142,7 @@ exports.signup = async (req, res, next) => {
     password,
     passwordConfirm,
     role,
+    tokenVersion: 1,
     emailVerificationCode: shaHash(code),
     emailVerificationExpire: codeExpire
   });
@@ -209,6 +210,15 @@ exports.protectRoute = async (req, res, next) => {
     );
   }
 
+  if (currentUser.tokenVersion > decoded.tokenVersion) {
+    return next(
+      new AppError(
+        'The login token is no longer valid, Please login again.',
+        401,
+        'invalid_token_error'
+      )
+    );
+  }
   if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
       new AppError(
@@ -314,7 +324,11 @@ exports.resetPassword = async (req, res, next) => {
   const user = await findUserWithCode(req.params.token, 'password_reset');
   if (!user) {
     return next(
-      new AppError('Token is either invalid or expired.', 400, 'invalid_token')
+      new AppError(
+        'Token is either invalid or expired.',
+        400,
+        'invalid_token_error'
+      )
     );
   }
   user.password = req.body.password;
@@ -459,6 +473,17 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
     validateModifiedOnly: true
   });
   await sendVerifyToken(user, code, res, next);
+};
+
+exports.logout = async (req, res, next) => {
+  const user = UserModel.findById(req.user.id);
+  user.tokenVersion += 1;
+  await user.save({
+    validateModifiedOnly: true
+  });
+  res.status(200).json({
+    status: 'success'
+  });
 };
 
 exports.updateMyEmail = async (req, res, next) => {

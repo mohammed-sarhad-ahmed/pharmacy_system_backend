@@ -11,7 +11,8 @@ const {
   updateMyEmail,
   showResetPasswordPage,
   sendVerifyCodeAgain,
-  verifyEmail
+  verifyEmail,
+  logout
 } = require('../handlers/auth_handler');
 
 const Router = express.Router();
@@ -27,5 +28,6 @@ Router.patch('/update-my-password', protectRoute, updateMyPassword);
 Router.patch('/update-my-email', protectRoute, updateMyEmail);
 Router.patch('/update-me', protectRoute, updateMe);
 Router.patch('/delete-me', protectRoute, deleteMe);
+Router.patch('/logout', protectRoute, logout);
 
 module.exports = Router;

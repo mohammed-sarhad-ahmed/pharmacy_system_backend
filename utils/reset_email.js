@@ -1,3 +1,4 @@
+const nodemailer = require('nodemailer');
 const renderEmail = require('./render_template_async');
 const Email = require('./email');
 
@@ -20,7 +21,8 @@ class ResetEmail extends Email {
       html
     };
     // we need await do not remove it vscode is being stupid
-    await this.transporter.sendMail(mailOptions);
+    const info = await this.transporter.sendMail(mailOptions);
+    console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
   }
 }
 

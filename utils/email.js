@@ -1,12 +1,18 @@
-const nodeMailer = require('nodemailer');
+const nodemailer = require('nodemailer');
+
+let testAccount;
+(async () => {
+  testAccount = await nodemailer.createTestAccount();
+})();
 
 class Email {
-  transporter = nodeMailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
+  transporter = nodemailer.createTransport({
+    host: testAccount.smtp.host,
+    port: testAccount.smtp.port,
+    secure: testAccount.smtp.secure,
     auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD
+      user: testAccount.user,
+      pass: testAccount.pass
     }
   });
 

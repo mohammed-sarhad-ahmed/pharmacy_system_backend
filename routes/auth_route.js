@@ -24,10 +24,10 @@ Router.post('/verify-email/:emailVerificationCode', verifyEmail);
 Router.get('/password-reset-page/:token', showResetPasswordPage);
 Router.get('/get-verification-code-again', sendVerifyCodeAgain);
 Router.patch('/reset-password/:token', resetPassword);
+Router.post('/logout', protectRoute, logout);
 Router.patch('/update-my-password', protectRoute, updateMyPassword);
 Router.patch('/update-my-email', protectRoute, updateMyEmail);
 Router.patch('/update-me', protectRoute, updateMe);
 Router.patch('/delete-me', protectRoute, deleteMe);
-Router.patch('/logout', protectRoute, logout);
 
 module.exports = Router;

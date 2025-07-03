@@ -20,7 +20,7 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
-const sendVerifyToken = async (user, code, res, next, name = 'dear user') => {
+const sendVerifyToken = async (user, code, name = 'dear user') => {
   try {
     const verifyEmail = new VerifyEmail(
       'email_verification',
@@ -30,22 +30,11 @@ const sendVerifyToken = async (user, code, res, next, name = 'dear user') => {
       code
     );
     await verifyEmail.sendEmail();
-    res.status(200).json({
-      status: 'success',
-      message: 'Please check your email for the verification code'
-    });
   } catch (err) {
+    console.error('Something went wrong during send the email');
     user.emailVerificationExpire = undefined;
     user.emailVerificationCode = undefined;
     await user.save({ validateModifiedOnly: true });
-    console.error('Email send error:', err);
-    return next(
-      new AppError(
-        'Something went wrong during sending the email. Please try again later!',
-        500,
-        'server_error'
-      )
-    );
   }
 };
 
@@ -98,10 +87,14 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
     res.cookie('jwt', token, cookieOptions);
 
     if (sendUser) {
+      const profile = await roleConfig[user.role].model.findOne({
+        user: user._id
+      });
       res.status(statusCode).json({
         status: 'success',
         data: {
-          user
+          user,
+          profile
         }
       });
     } else {
@@ -168,17 +161,14 @@ exports.signup = async (req, res, next) => {
 
   const roleData = config.extract(req.body);
   const { model: RoleModel } = config;
-
-  const [newUser, profile] = await Promise.all([
-    UserModel.create(userData),
-    RoleModel.create(roleData)
-  ]);
-
-  profile.user = newUser._id;
-  await Promise.all([
-    profile.save(),
-    sendVerifyToken(newUser, code, res, next, profile.name)
-  ]);
+  const newUser = await UserModel.create(userData);
+  roleData.user = newUser._id;
+  const profile = await RoleModel.create(roleData);
+  res.status(200).json({
+    status: 'success',
+    message: 'Account creation was successful'
+  });
+  await sendVerifyToken(newUser, code, profile.name);
 };
 
 exports.login = async (req, res, next) => {

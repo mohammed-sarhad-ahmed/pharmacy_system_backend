@@ -20,7 +20,7 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
-const sendVerifyToken = async (user, name, code, res, next) => {
+const sendVerifyToken = async (user, code, res, next, name = 'dear user') => {
   try {
     const verifyEmail = new VerifyEmail(
       'email_verification',
@@ -177,7 +177,7 @@ exports.signup = async (req, res, next) => {
   profile.user = newUser._id;
   await Promise.all([
     profile.save(),
-    sendVerifyToken(newUser, profile.name, 201, res, next)
+    sendVerifyToken(newUser, code, res, next, profile.name)
   ]);
 };
 
@@ -271,7 +271,7 @@ exports.protectRoute = async (req, res, next) => {
 // eslint-disable-next-line arrow-body-style
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.user || !roles.includes(req.user.role)) {
       return next(
         new AppError(
           'You do not have permission to perform this action',
@@ -286,10 +286,10 @@ exports.restrictTo = (...roles) => {
 
 exports.forgotPassword = async (req, res, next) => {
   const { email } = req.body;
+  const normalizedEmail = email?.toLowerCase()?.trim();
   const user = await UserModel.findOne({
-    email: email.toLowerCase().trim()
+    email: normalizedEmail
   });
-
   if (!user) {
     const randomDelay = Math.floor(1823 + Math.random() * 1000);
 
@@ -303,9 +303,7 @@ exports.forgotPassword = async (req, res, next) => {
     });
   }
 
-  const profile = await roleConfig[user.role].model({
-    user: user._id
-  });
+  const profile = await roleConfig[user.role].model.findOne({ user: user._id });
 
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
@@ -427,6 +425,7 @@ exports.updateMyPhoneNumber = async (req, res, next) => {
     return next(
       new AppError(
         'You can not use this route to change email, Please use /auth/update-my-email',
+        400,
         'wrong_path_error'
       )
     );
@@ -477,9 +476,13 @@ exports.verifyEmail = async (req, res, next) => {
 };
 
 exports.deleteMe = async (req, res, next) => {
-  await UserModel.findByIdAndUpdate(req.user.id, {
+  const result = await UserModel.findByIdAndUpdate(req.user.id, {
     active: false
   });
+  if (!result) {
+    return next(new AppError('User not found', 404, 'item_not_exist_error'));
+  }
+
   res.status(204).json({
     message: 'success'
   });
@@ -494,7 +497,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
     );
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = email?.toLowerCase()?.trim();
   const user = await UserModel.findOne({ email: normalizedEmail });
 
   if (!user) {
@@ -525,7 +528,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 
   await Promise.all([
     user.save({ validateModifiedOnly: true }),
-    sendVerifyToken(user, profile.name, code, res, next)
+    sendVerifyToken(user, code, res, next, profile.name)
   ]);
 };
 

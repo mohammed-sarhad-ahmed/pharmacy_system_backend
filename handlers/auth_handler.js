@@ -502,7 +502,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 
   const code = generateSecureCode(6);
   user.emailVerificationCode = shaHash(code);
-  user.emailVerificationExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+  user.emailVerificationExpire = new Date(Date.now() + 10 * 60 * 1000);
 
   const profile = await roleConfig[user.role].model.findOne({ user: user._id });
 

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const supplierSchema = mongoose.Schema(
   {
-    userId: {
+    user: {
       type: mongoose.Types.ObjectId,
       ref: 'User',
       required: [true, 'A user has to be linked a supplier']

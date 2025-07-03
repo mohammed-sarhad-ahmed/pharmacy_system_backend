@@ -544,7 +544,7 @@ exports.logout = async (req, res, next) => {
 };
 
 exports.updateMyEmail = async (req, res, next) => {
-  res.status(204).json({
+  res.status(501).json({
     message: 'not implemented yet!'
   });
 };

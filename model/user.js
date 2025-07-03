@@ -6,13 +6,6 @@ const shaHash = require('../utils/sha_hash');
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [
-        true,
-        'Business name is required. Please provide the name of your business.'
-      ]
-    },
     email: {
       type: String,
       required: [

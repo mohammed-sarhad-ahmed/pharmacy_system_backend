@@ -9,6 +9,7 @@ const VerifyEmail = require('../utils/email_verification');
 const htmlTagSanitizer = require('../utils/html_tag_sanitizer');
 const generateSecureCode = require('../utils/generate_secure_code');
 const shaHash = require('../utils/sha_hash');
+const roleConfig = require('../utils/roleConfig');
 
 function signTokenAsync(payload, secret, options) {
   return new Promise((resolve, reject) => {
@@ -19,11 +20,11 @@ function signTokenAsync(payload, secret, options) {
   });
 }
 
-const sendVerifyToken = async (user, code, res, next) => {
+const sendVerifyToken = async (user, name, code, res, next) => {
   try {
     const verifyEmail = new VerifyEmail(
       'email_verification',
-      user.name,
+      name,
       user.email,
       'Email Verification',
       code
@@ -120,10 +121,17 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 }
 
 exports.signup = async (req, res, next) => {
-  const { name, email, phoneNumber, password, passwordConfirm, role } =
-    req.body;
+  const { email, phoneNumber, password, passwordConfirm, role } = req.body;
 
-  if (req.body.role?.toLowerCase() === 'admin') {
+  if (!role) {
+    return next(
+      new AppError('You have to provide a role', 400, 'field_missing_error')
+    );
+  }
+
+  const normalizedRole = role.toLowerCase();
+
+  if (normalizedRole === 'admin') {
     return next(
       new AppError(
         'You cannot assign yourself as admin.',
@@ -132,26 +140,52 @@ exports.signup = async (req, res, next) => {
       )
     );
   }
+
+  const config = roleConfig[normalizedRole];
+
+  if (!config) {
+    return next(
+      new AppError(
+        'The role you provided is invalid',
+        400,
+        'invalid_field_error'
+      )
+    );
+  }
   const code = generateSecureCode(6);
   const codeExpire = new Date(Date.now() + 1000 * 10 * 60);
 
-  const newUser = await UserModel.create({
-    name,
+  const userData = {
     email: email.toLowerCase().trim(),
     phoneNumber,
     password,
     passwordConfirm,
-    role,
+    role: normalizedRole,
     tokenVersion: 1,
     emailVerificationCode: shaHash(code),
     emailVerificationExpire: codeExpire
-  });
-  await sendVerifyToken(newUser, code, res, next);
+  };
+
+  const roleData = config.extract(req.body);
+  const { model: RoleModel } = config;
+
+  const [newUser, profile] = await Promise.all([
+    UserModel.create(userData),
+    RoleModel.create(roleData)
+  ]);
+
+  profile.user = newUser._id;
+  await Promise.all([
+    profile.save(),
+    sendVerifyToken(newUser, profile.name, 201, res, next)
+  ]);
 };
 
 exports.login = async (req, res, next) => {
   const { email, password } = req.body;
-  if (!email.trim() || !password.trim()) {
+  const normalizedEmail = email?.toLowerCase()?.trim();
+  const trimmedPassword = password?.trim();
+  if (!normalizedEmail || !trimmedPassword) {
     return next(
       new AppError(
         'Please provide email and password.',
@@ -160,13 +194,13 @@ exports.login = async (req, res, next) => {
       )
     );
   }
-  if (!validator.isEmail(email.trim().toLowerCase())) {
+  if (!validator.isEmail(normalizedEmail)) {
     return next(
       new AppError('Incorrect email or password', 401, 'invalid_field_error')
     );
   }
   const user = await UserModel.findOne({
-    email: email.toLowerCase().trim()
+    email: normalizedEmail
   }).select('+password');
 
   if (!user || !(await user.correctPassword(password, user.password))) {
@@ -176,7 +210,7 @@ exports.login = async (req, res, next) => {
   }
   if (!user.isEmailVerified) {
     return next(
-      new AppError('Please verify you email', 400, 'email_not_verified_error')
+      new AppError('Please verify your email', 400, 'email_not_verified_error')
     );
   }
 
@@ -269,6 +303,10 @@ exports.forgotPassword = async (req, res, next) => {
     });
   }
 
+  const profile = await roleConfig[user.role].model({
+    user: user._id
+  });
+
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
 
@@ -276,7 +314,7 @@ exports.forgotPassword = async (req, res, next) => {
   try {
     const resetEmail = new ResetEmail(
       'reset_password',
-      user.name,
+      profile.name,
       user.email,
       'Password Reset',
       resetUrl
@@ -374,7 +412,7 @@ exports.updateMyPassword = async (req, res, next) => {
   await logUserIn(res, next, user, 200);
 };
 
-exports.updateMe = async (req, res, next) => {
+exports.updateMyPhoneNumber = async (req, res, next) => {
   if (req.body.passwordConfirm || req.body.password) {
     return next(
       new AppError(
@@ -402,7 +440,7 @@ exports.updateMe = async (req, res, next) => {
       )
     );
   }
-  const data = filterObj(req.body, 'name', 'phoneNumber');
+  const data = filterObj(req.body, 'phoneNumber');
   const user = await UserModel.findByIdAndUpdate(req.user.id, data, {
     runValidators: true,
     new: true
@@ -466,13 +504,21 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
       )
     );
   }
+
   const code = generateSecureCode(6);
   user.emailVerificationCode = shaHash(code);
   user.emailVerificationExpire = new Date(Date.now() + 1000 * 10 * 60);
-  await user.save({
-    validateModifiedOnly: true
-  });
-  await sendVerifyToken(user, code, res, next);
+
+  // eslint-disable-next-line no-unused-vars
+  const [_, profile] = await Promise.all([
+    user.save({
+      validateModifiedOnly: true
+    }),
+    roleConfig[user.role].model({
+      user: user._id
+    })
+  ]);
+  await sendVerifyToken(user, profile.name, code, res, next);
 };
 
 exports.logout = async (req, res, next) => {

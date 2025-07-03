@@ -487,14 +487,16 @@ exports.deleteMe = async (req, res, next) => {
 
 exports.sendVerifyCodeAgain = async (req, res, next) => {
   const { email } = req.body;
+
   if (!email) {
     return next(
       new AppError('Please provide an email', 400, 'field_missing_error')
     );
   }
-  const user = await UserModel.findOne({
-    email
-  });
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const user = await UserModel.findOne({ email: normalizedEmail });
+
   if (!user) {
     return next(
       new AppError(
@@ -507,18 +509,24 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 
   const code = generateSecureCode(6);
   user.emailVerificationCode = shaHash(code);
-  user.emailVerificationExpire = new Date(Date.now() + 1000 * 10 * 60);
+  user.emailVerificationExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-  // eslint-disable-next-line no-unused-vars
-  const [_, profile] = await Promise.all([
-    user.save({
-      validateModifiedOnly: true
-    }),
-    roleConfig[user.role].model({
-      user: user._id
-    })
+  const profile = await roleConfig[user.role].model.findOne({ user: user._id });
+
+  if (!profile) {
+    return next(
+      new AppError(
+        'Profile document not found for this user.',
+        500,
+        'internal_error'
+      )
+    );
+  }
+
+  await Promise.all([
+    user.save({ validateModifiedOnly: true }),
+    sendVerifyToken(user, profile.name, code, res, next)
   ]);
-  await sendVerifyToken(user, profile.name, code, res, next);
 };
 
 exports.logout = async (req, res, next) => {

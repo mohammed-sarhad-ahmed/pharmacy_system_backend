@@ -518,8 +518,12 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 
   await Promise.all([
     user.save({ validateModifiedOnly: true }),
-    sendVerifyToken(user, code, res, next, profile.name)
+    sendVerifyToken(user, code, profile.name)
   ]);
+  res.status(200).json({
+    status: 'success',
+    message: 'Successfully send the code again'
+  });
 };
 
 exports.logout = async (req, res, next) => {

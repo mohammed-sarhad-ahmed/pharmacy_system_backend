@@ -1,6 +1,7 @@
 # API Documentation
 
 # Auth Router
+
 All routes in Auth are prefixed with `/auth`.
 
 ---
@@ -36,7 +37,7 @@ All routes in Auth are prefixed with `/auth`.
   "phoneNumber": "1234567890",
   "password": "password123",
   "passwordConfirm": "password123",
-  "role": "customer"
+  "role": "pharmacy"
 }
 ```
 

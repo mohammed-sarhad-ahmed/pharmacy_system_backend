@@ -10,11 +10,13 @@ const { protectRoute, restrictTo } = require('../handlers/auth_handler');
 
 const Router = express.Router();
 
-Router.use(protectRoute, restrictTo('supplier', 'admin'));
-Router.route('/').post(addMedicine).get(getMedicines);
+Router.use(protectRoute);
+Router.route('/')
+  .post(restrictTo('supplier', 'admin'), addMedicine)
+  .get(getMedicines);
 Router.route('/:id')
   .get(getMedicine)
-  .patch(updateMedicine)
-  .delete(deleteMedicine);
+  .patch(restrictTo('supplier', 'admin'), updateMedicine)
+  .delete(restrictTo('supplier', 'admin'), deleteMedicine);
 
 module.exports = Router;

@@ -1,5 +1,5 @@
 const express = require('express');
-const { protectRoute } = require('../handlers/auth_handler');
+const { protectRoute, restrictTo } = require('../handlers/auth_handler');
 const {
   getOrder,
   addOrder,
@@ -12,8 +12,13 @@ const Router = express.Router();
 
 Router.use(protectRoute);
 
-Router.route('/').get(getOrders).post(addOrder);
+Router.route('/')
+  .get(getOrders)
+  .post(restrictTo('admin', 'supplier'), addOrder);
 
-Router.route('/:id').get(getOrder).patch(updateOrder).delete(deleteOrder);
+Router.route('/:id')
+  .get(getOrder)
+  .patch(restrictTo('admin', 'supplier'), updateOrder)
+  .delete(restrictTo('admin', 'supplier'), deleteOrder);
 
 module.exports = Router;

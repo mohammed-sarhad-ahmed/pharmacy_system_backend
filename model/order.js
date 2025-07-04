@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const orderSchema = mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
     medicines: {
       type: [
@@ -31,3 +31,5 @@ const orderSchema = mongoose.Schema(
     timestamps: true
   }
 );
+
+module.exports = mongoose.model('Medicine', orderSchema);

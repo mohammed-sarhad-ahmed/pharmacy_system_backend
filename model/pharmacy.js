@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const pharmacySchema = mongoose.Schema(
+const pharmacySchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Types.ObjectId,

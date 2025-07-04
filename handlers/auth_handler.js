@@ -524,6 +524,12 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
       .json({ status: 'success', message: GENERIC_SUCCESS_MSG });
   }
 
+  if (user.isEmailVerified) {
+    return next(
+      new AppError('This email is already verified', 400, 'user_error')
+    );
+  }
+
   const lastAttemptTime = user.lastVerificationAttemptAt?.getTime() || 0;
   const retryAllowedAfter = lastAttemptTime + ONE_HOUR;
 
@@ -544,7 +550,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 
   const code = generateSecureCode(6);
   user.emailVerificationCode = shaHash(code);
-  user.emailVerificationExpire = new Date(now + 10 * 60 * 1000); // 10 mins expiry
+  user.emailVerificationExpire = new Date(now + 10 * 60 * 1000);
   user.verificationAttemptCount += 1;
   user.lastVerificationAttemptAt = new Date(now);
 

@@ -11,6 +11,9 @@ const supplierSchema = mongoose.Schema(
       type: String,
       required: [true, 'The supplier name is required.']
     },
+    profilePicture: {
+      type: String
+    },
     active: {
       type: Boolean,
       default: true,

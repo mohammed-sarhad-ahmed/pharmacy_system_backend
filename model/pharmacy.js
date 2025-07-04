@@ -11,6 +11,9 @@ const pharmacySchema = mongoose.Schema(
       type: String,
       required: [true, 'The pharmacy name is required.']
     },
+    profilePicture: {
+      type: String
+    },
     active: {
       type: Boolean,
       default: true,

@@ -10,6 +10,11 @@ const supplierSchema = mongoose.Schema(
     name: {
       type: String,
       required: [true, 'The supplier name is required.']
+    },
+    active: {
+      type: Boolean,
+      default: true,
+      select: false
     }
   },
   {

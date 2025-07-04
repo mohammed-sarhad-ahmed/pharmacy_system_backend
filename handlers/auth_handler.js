@@ -278,7 +278,8 @@ exports.forgotPassword = async (req, res, next) => {
   const { email } = req.body;
   const normalizedEmail = email?.toLowerCase()?.trim();
   const user = await UserModel.findOne({
-    email: normalizedEmail
+    email: normalizedEmail,
+    active: true
   });
   if (!user) {
     const randomDelay = Math.floor(1823 + Math.random() * 1000);
@@ -293,7 +294,10 @@ exports.forgotPassword = async (req, res, next) => {
     });
   }
 
-  const profile = await roleConfig[user.role].model.findOne({ user: user._id });
+  const profile = await roleConfig[user.role].model.findOne({
+    user: user._id,
+    active: true
+  });
 
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateModifiedOnly: true });
@@ -466,12 +470,21 @@ exports.verifyEmail = async (req, res, next) => {
 };
 
 exports.deleteMe = async (req, res, next) => {
-  const result = await UserModel.findByIdAndUpdate(req.user.id, {
+  const user = await UserModel.findByIdAndUpdate(req.user.id, {
     active: false
   });
-  if (!result) {
+  if (!user) {
     return next(new AppError('User not found', 404, 'item_not_exist_error'));
   }
+
+  const { model: ProfileModel } = roleConfig[user.role];
+
+  await ProfileModel.findOneAndUpdate(
+    {
+      user: user.id
+    },
+    { active: false }
+  );
 
   res.status(204).json({
     message: 'success'
@@ -488,7 +501,10 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
   }
 
   const normalizedEmail = email?.toLowerCase()?.trim();
-  const user = await UserModel.findOne({ email: normalizedEmail });
+  const user = await UserModel.findOne({
+    email: normalizedEmail,
+    active: true
+  });
 
   if (!user) {
     const randomDelay = Math.floor(1823 + Math.random() * 1000);
@@ -499,7 +515,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
 
     return res.status(200).json({
       message:
-        'If your email exists in our database, you have received a link to reset your password'
+        'If your email exists in our database, you have received the code again.'
     });
   }
 
@@ -507,7 +523,10 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
   user.emailVerificationCode = shaHash(code);
   user.emailVerificationExpire = new Date(Date.now() + 10 * 60 * 1000);
 
-  const profile = await roleConfig[user.role].model.findOne({ user: user._id });
+  const profile = await roleConfig[user.role].model.findOne({
+    user: user._id,
+    active: true
+  });
 
   if (!profile) {
     return next(new AppError('Something went wrong', 500, 'generic_error'));
@@ -519,7 +538,8 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
   ]);
   res.status(200).json({
     status: 'success',
-    message: 'Successfully send the code again'
+    message:
+      'If your email exists in our database, you have received the code again.'
   });
 };
 

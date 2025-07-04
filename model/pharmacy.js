@@ -10,6 +10,11 @@ const pharmacySchema = mongoose.Schema(
     name: {
       type: String,
       required: [true, 'The pharmacy name is required.']
+    },
+    active: {
+      type: Boolean,
+      default: true,
+      select: false
     }
   },
   {

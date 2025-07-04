@@ -9,6 +9,7 @@ const AppError = require('./utils/app_error');
 const handleError = require('./handlers/error_handler');
 const htmlTagSanitizer = require('./utils/html_tag_sanitizer');
 const medicineRouter = require('./routes/medicine_route');
+const orderRouter = require('./routes/order_handler');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use(express.static('public'));
 
 app.use('/auth', authRouter);
 app.use('/medicine', medicineRouter);
+app.use('/order', orderRouter);
 
 app.all('/{*everything}', (req, res, next) => {
   next(new AppError('route not found', 404));

@@ -32,4 +32,4 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Medicine', orderSchema);
+module.exports = mongoose.model('Order', orderSchema);

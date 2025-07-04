@@ -10,7 +10,7 @@ const { protectRoute, restrictTo } = require('../handlers/auth_handler');
 
 const Router = express.Router();
 
-Router.use(protectRoute, restrictTo('supplier'));
+Router.use(protectRoute, restrictTo('supplier', 'admin'));
 Router.route('/').post(addMedicine).get(getMedicines);
 Router.route('/:id')
   .get(getMedicine)

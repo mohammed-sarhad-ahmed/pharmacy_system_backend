@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const medicineSchema = mongoose.Schema(
+const medicineSchema = new mongoose.Schema(
   {
     supplier: {
       type: mongoose.Schema.ObjectId,

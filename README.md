@@ -2,7 +2,7 @@
 
 ## Auth Router
 
-All routes in this documentation are prefixed with `/auth`.
+All routes in this Router are prefixed with `/auth`. for example /auth/signup
 
 ---
 

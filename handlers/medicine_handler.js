@@ -1,5 +1,6 @@
 const MedicineModel = require('../model/medicine');
 const AppError = require('../utils/app_error');
+const APIFeatures = require('../utils/api_features');
 
 exports.addMedicine = async (req, res, next) => {
   const newMedicine = await MedicineModel.create(req.body);
@@ -10,7 +11,13 @@ exports.addMedicine = async (req, res, next) => {
 };
 
 exports.getMedicines = async (req, res, next) => {
-  const medicines = await MedicineModel.find();
+  const { query } = new APIFeatures(MedicineModel.find(), this.query)
+    .filter()
+    .limitFields()
+    .paginate()
+    .sort();
+
+  const medicines = await query;
   res.status(200).json({
     status: 'success',
     data: { medicines }

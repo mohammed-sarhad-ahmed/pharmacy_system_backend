@@ -6,9 +6,11 @@ const {
   updateMedicine,
   deleteMedicine
 } = require('../handlers/medicine_handler');
+const { protectRoute, restrictTo } = require('../handlers/auth_handler');
 
 const Router = express.Router();
 
+Router.use(protectRoute, restrictTo('supplier'));
 Router.route('/').post(addMedicine).get(getMedicines);
 Router.route('/:id')
   .get(getMedicine)

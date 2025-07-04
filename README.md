@@ -1,4 +1,6 @@
-# Authentication API Documentation
+#  API Documentation
+
+## Auth Router
 
 All routes in this documentation are prefixed with `/auth`.
 

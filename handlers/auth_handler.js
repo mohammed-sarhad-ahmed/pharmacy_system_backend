@@ -227,7 +227,7 @@ exports.protectRoute = async (req, res, next) => {
     return next(
       new AppError(
         'The user belonging to this token does no longer exist.',
-        401,
+        404,
         'item_not_exist_error'
       )
     );

@@ -1,7 +1,18 @@
 const express = require('express');
+const {
+  addMedicine,
+  getMedicines,
+  getMedicine,
+  updateMedicine,
+  deleteMedicine
+} = require('../handlers/medicine_handler');
 
 const Router = express.Router();
 
-Router.route('/').path().get();
+Router.route('/').post(addMedicine).get(getMedicines);
+Router.route('/:id')
+  .get(getMedicine)
+  .patch(updateMedicine)
+  .delete(deleteMedicine);
 
 module.exports = Router;

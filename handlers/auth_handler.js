@@ -491,13 +491,16 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
   const user = await UserModel.findOne({ email: normalizedEmail });
 
   if (!user) {
-    return next(
-      new AppError(
-        'User for this email is not found',
-        400,
-        'item_not_exist_error'
-      )
-    );
+    const randomDelay = Math.floor(1823 + Math.random() * 1000);
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, randomDelay);
+    });
+
+    return res.status(200).json({
+      message:
+        'If your email exists in our database, you have received a link to reset your password'
+    });
   }
 
   const code = generateSecureCode(6);
@@ -507,13 +510,7 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
   const profile = await roleConfig[user.role].model.findOne({ user: user._id });
 
   if (!profile) {
-    return next(
-      new AppError(
-        'Profile document not found for this user.',
-        500,
-        'internal_error'
-      )
-    );
+    return next(new AppError('Something went wrong', 500, 'generic_error'));
   }
 
   await Promise.all([

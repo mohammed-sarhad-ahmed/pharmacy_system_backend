@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
     },
     tokenVersion: {
       type: Number,
-      required: true
+      default: 1
     },
     role: {
       type: String,
@@ -83,8 +83,11 @@ const userSchema = new mongoose.Schema(
     passwordResetTokenExpires: Date,
     emailVerificationCode: String,
     emailVerificationExpire: Date,
-    numberOfTriesForVerification: Number,
-    tiresForVerificationExp: Date,
+    verificationAttemptCount: {
+      type: Number,
+      default: 1
+    },
+    lastVerificationAttemptAt: Date,
     active: {
       type: Boolean,
       default: true,
@@ -134,6 +137,8 @@ userSchema.set('toJSON', {
     delete ret.emailVerificationCode;
     delete ret.emailVerificationExpire;
     delete ret.tokenVersion;
+    delete ret.tiresForVerificationExp;
+    delete ret.numberOfTriesForVerification;
     return ret;
   }
 });

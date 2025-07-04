@@ -154,7 +154,6 @@ exports.signup = async (req, res, next) => {
     password,
     passwordConfirm,
     role: normalizedRole,
-    tokenVersion: 1,
     emailVerificationCode: shaHash(code),
     emailVerificationExpire: codeExpire
   };
@@ -449,7 +448,7 @@ exports.updateMyPhoneNumber = async (req, res, next) => {
 
 exports.verifyEmail = async (req, res, next) => {
   const user = await findUserWithCode(
-    req.params.emailVerificationCode,
+    req.body.emailVerificationCode,
     'email_verification'
   );
   if (!user) {
@@ -500,35 +499,61 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
     );
   }
 
-  const normalizedEmail = email?.toLowerCase()?.trim();
+  const normalizedEmail = email.toLowerCase().trim();
   const user = await UserModel.findOne({
     email: normalizedEmail,
     active: true
   });
 
-  if (!user) {
-    const randomDelay = Math.floor(1823 + Math.random() * 1000);
+  const now = Date.now();
+  const ONE_HOUR = 1000 * 60 * 60;
+  const GENERIC_SUCCESS_MSG =
+    'If your email exists in our database, you have received the code again.';
 
+  if (!user) {
+    const randomDelay = 1823 + Math.floor(Math.random() * 1000);
     await new Promise((resolve) => {
       setTimeout(resolve, randomDelay);
     });
 
-    return res.status(200).json({
-      message:
-        'If your email exists in our database, you have received the code again.'
-    });
+    console.log(
+      `[VERIFY] Email not found. Sent generic response. Email: ${normalizedEmail}`
+    );
+    return res
+      .status(200)
+      .json({ status: 'success', message: GENERIC_SUCCESS_MSG });
+  }
+
+  const lastAttemptTime = user.lastVerificationAttemptAt?.getTime() || 0;
+  const retryAllowedAfter = lastAttemptTime + ONE_HOUR;
+
+  if (now >= retryAllowedAfter) {
+    user.verificationAttemptCount = 0;
+  }
+
+  if (user.verificationAttemptCount >= 3 && now < retryAllowedAfter) {
+    console.warn(`[VERIFY] Too many attempts for ${user.email}`);
+    return next(
+      new AppError(
+        'We have tried to send the verification code 3 times in the last hour. Please try again later.',
+        403,
+        'rate_limit_error'
+      )
+    );
   }
 
   const code = generateSecureCode(6);
   user.emailVerificationCode = shaHash(code);
-  user.emailVerificationExpire = new Date(Date.now() + 10 * 60 * 1000);
+  user.emailVerificationExpire = new Date(now + 10 * 60 * 1000); // 10 mins expiry
+  user.verificationAttemptCount += 1;
+  user.lastVerificationAttemptAt = new Date(now);
 
   const profile = await roleConfig[user.role].model.findOne({
-    user: user._id,
-    active: true
+    user: user._id
   });
 
   if (!profile) {
+    console.error(`[VERIFY] Profile not found for user ID: ${user._id}`);
     return next(new AppError('Something went wrong', 500, 'generic_error'));
   }
 
@@ -536,11 +561,11 @@ exports.sendVerifyCodeAgain = async (req, res, next) => {
     user.save({ validateModifiedOnly: true }),
     sendVerifyToken(user, code, profile.name)
   ]);
-  res.status(200).json({
-    status: 'success',
-    message:
-      'If your email exists in our database, you have received the code again.'
-  });
+
+  console.log(`[VERIFY] Verification code sent to: ${user.email}`);
+  return res
+    .status(200)
+    .json({ status: 'success', message: GENERIC_SUCCESS_MSG });
 };
 
 exports.logout = async (req, res, next) => {

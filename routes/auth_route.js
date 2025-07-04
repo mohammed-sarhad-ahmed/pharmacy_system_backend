@@ -20,7 +20,7 @@ const Router = express.Router();
 Router.post('/signup', signup);
 Router.post('/login', login);
 Router.post('/forgot-password', forgotPassword);
-Router.post('/verify-email/:emailVerificationCode', verifyEmail);
+Router.post('/verify-email', verifyEmail);
 Router.get('/password-reset-page/:token', showResetPasswordPage);
 Router.get('/get-verification-code-again', sendVerifyCodeAgain);
 Router.patch('/reset-password/:token', resetPassword);

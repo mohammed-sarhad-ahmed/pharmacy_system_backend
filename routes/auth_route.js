@@ -6,7 +6,6 @@ const {
   resetPassword,
   updateMyPassword,
   protectRoute,
-  updateMyPhoneNumber,
   deleteMe,
   updateMyEmail,
   showResetPasswordPage,
@@ -27,7 +26,6 @@ Router.patch('/reset-password/:token', resetPassword);
 Router.post('/logout', protectRoute, logout);
 Router.patch('/update-my-password', protectRoute, updateMyPassword);
 Router.patch('/update-my-email', protectRoute, updateMyEmail);
-Router.patch('/update-my-phone-number', protectRoute, updateMyPhoneNumber);
 Router.delete('/delete-me', protectRoute, deleteMe);
 
 module.exports = Router;

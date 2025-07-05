@@ -56,16 +56,6 @@ const findUserWithCode = async (code, type) => {
   return user;
 };
 
-function filterObj(obj, ...allowedFields) {
-  const newObj = {};
-  Object.keys(obj).forEach((field) => {
-    if (allowedFields.includes(field)) {
-      newObj[field] = obj[field];
-    }
-  });
-  return newObj;
-}
-
 async function logUserIn(res, next, user, statusCode, sendUser = false) {
   try {
     const token = await signTokenAsync(
@@ -114,7 +104,7 @@ async function logUserIn(res, next, user, statusCode, sendUser = false) {
 }
 
 exports.signup = async (req, res, next) => {
-  const { email, phoneNumber, password, passwordConfirm, role } = req.body;
+  const { email, password, passwordConfirm, role } = req.body;
 
   if (!role) {
     return next(
@@ -150,7 +140,6 @@ exports.signup = async (req, res, next) => {
 
   const userData = {
     email: email.toLowerCase().trim(),
-    phoneNumber,
     password,
     passwordConfirm,
     role: normalizedRole,
@@ -401,49 +390,6 @@ exports.updateMyPassword = async (req, res, next) => {
   await user.save();
 
   await logUserIn(res, next, user, 200);
-};
-
-exports.updateMyPhoneNumber = async (req, res, next) => {
-  if (req.body.passwordConfirm || req.body.password) {
-    return next(
-      new AppError(
-        'You can not use this route to change password, Please use /auth/update-my-password',
-        400,
-        'wrong_path_error'
-      )
-    );
-  }
-
-  if (req.body.email) {
-    return next(
-      new AppError(
-        'You can not use this route to change email, Please use /auth/update-my-email',
-        400,
-        'wrong_path_error'
-      )
-    );
-  }
-  if (req.body.role?.toLowerCase() === 'admin') {
-    return next(
-      new AppError(
-        'You cannot assign yourself as admin.',
-        403,
-        'permission_error'
-      )
-    );
-  }
-  const data = filterObj(req.body, 'phoneNumber');
-  const user = await UserModel.findByIdAndUpdate(req.user.id, data, {
-    runValidators: true,
-    new: true
-  });
-
-  res.status(200).json({
-    message: 'success',
-    data: {
-      user
-    }
-  });
 };
 
 exports.verifyEmail = async (req, res, next) => {

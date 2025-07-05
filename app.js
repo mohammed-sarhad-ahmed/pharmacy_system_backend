@@ -10,6 +10,7 @@ const handleError = require('./handlers/error_handler');
 const htmlTagSanitizer = require('./utils/html_tag_sanitizer');
 const medicineRouter = require('./routes/medicine_route');
 const orderRouter = require('./routes/order_handler');
+const profileRouter = require('./routes/profile_route');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use((req, res, next) => {
 app.use(express.static('public'));
 
 app.use('/auth', authRouter);
+app.use('/profile', profileRouter);
 app.use('/medicine', medicineRouter);
 app.use('/order', orderRouter);
 

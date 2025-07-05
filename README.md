@@ -2,7 +2,7 @@
 
 # Auth Router
 
-All routes in Auth are prefixed with `/auth`.
+All routes in Auth are prefixed with `/auth` for example "/auth/signup".
 
 ---
 
@@ -20,7 +20,6 @@ All routes in Auth are prefixed with `/auth`.
 | POST   | `/logout`                      | ✅   | Log out (invalidate token)              |
 | PATCH  | `/update-my-password`          | ✅   | Change user password                    |
 | PATCH  | `/update-my-email`             | ✅   | Not implemented                         |
-| PATCH  | `/update-my-phone-number`      | ✅   | Update phone number                     |
 | DELETE | `/delete-me`                   | ✅   | Deactivate user account                 |
 
 ---
@@ -162,28 +161,45 @@ All routes in Auth are prefixed with `/auth`.
 - ❌ Not implemented
 - Returns `501 Not Implemented`
 
----
-
-### PATCH `/auth/update-my-phone-number`
-
-- **Body:**
-
-```json
-{
-  "phoneNumber": "9876543210"
-}
-```
-
-- **Errors:**  
-  `wrong_path_error`, `permission_error`, `validation_error`
-
----
-
 ### DELETE `/auth/delete-me`
 
 - **Auth required**
 - **Errors:**  
   `item_not_exist_error`, `server_error`
+
+---
+
+# profile Router
+
+All routes in profile are prefixed with `/profile` for example "/profile/update-me".
+
+---
+
+## 📋 Routes Overview
+
+| Method | Endpoint              | Auth | Description                   |
+| ------ | --------------------- | ---- | ----------------------------- |
+| PATCH  | `/update-my-password` | ✅   | Change user info such as name |
+
+---
+
+### PATCH `/auth/update-me`
+
+- **Body:**
+
+```json
+{
+  "name": "example",
+  "phoneNumber": "07709952717"
+}
+```
+
+You can also use this path to update logo
+
+- **Errors:**  
+  `field_missing_error`, `field_incorrect_error`, `validation_error`
+
+---
 
 ---
 
@@ -208,7 +224,7 @@ All routes in Auth are prefixed with `/auth`.
 
 ---
 
-## 🔧 Required `.env` Variables
+## 🔧 Required `.env` Variables ask fot it i will send you .env files in a secure way
 
 | Key              | Description                  |
 | ---------------- | ---------------------------- |

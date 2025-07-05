@@ -32,8 +32,9 @@ All routes in Auth are prefixed with `/auth` for example "/auth/signup".
 
 ```json
 {
+  "name": "mohammed",
   "email": "user@example.com",
-  "phoneNumber": "1234567890",
+  "phoneNumber": "07709952717",
   "password": "password123",
   "passwordConfirm": "password123",
   "role": "pharmacy"

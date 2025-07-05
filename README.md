@@ -197,7 +197,7 @@ All routes in profile are prefixed with `/profile` for example "/profile/update-
 #### You can also use this path to update logo
 
 - **Errors:**  
-  `field_missing_error`, `field_incorrect_error`, `validation_error`
+  `wrong_path_error`, `permission_error`, `validation_error`
 
 ---
 

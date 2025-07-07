@@ -48,14 +48,13 @@ const findUserWithCode = async (code, type, email) => {
     };
   } else if (type === 'email_verification') {
     options = {
+      email,
       $or: [
         {
-          email,
           emailVerificationCode: hashedToken,
           emailVerificationExpire: { $gt: Date.now() }
         },
         {
-          email,
           isEmailVerified: true
         }
       ]

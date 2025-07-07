@@ -55,9 +55,9 @@ app.use((req, res, next) => {
 app.use(express.static('public'));
 
 app.use('/auth', authRouter);
-app.use('/profile', profileRouter);
-app.use('/medicine', medicineRouter);
-app.use('/order', orderRouter);
+app.use('/profiles', profileRouter);
+app.use('/medicines', medicineRouter);
+app.use('/orders', orderRouter);
 
 app.all('/{*everything}', (req, res, next) => {
   next(new AppError('route not found', 404));

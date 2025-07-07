@@ -172,19 +172,19 @@ All routes in Auth are prefixed with `/auth` for example "/auth/signup".
 
 # profile Router
 
-All routes in profile are prefixed with `/profile` for example "/profile/update-me".
+All routes in profile are prefixed with `/profiles` for example "/profile/update-me".
 
 ---
 
 ## 📋 Routes Overview
 
-| Method | Endpoint              | Auth | Description                   |
-| ------ | --------------------- | ---- | ----------------------------- |
-| PATCH  | `/update-my-password` | ✅   | Change user info such as name |
+| Method | Endpoint     | Auth | Description                   |
+| ------ | ------------ | ---- | ----------------------------- |
+| PATCH  | `/update-me` | ✅   | Change user info such as name |
 
 ---
 
-### PATCH `/profile/update-me`
+### PATCH `/profiles/update-me`
 
 - **Body:**
 

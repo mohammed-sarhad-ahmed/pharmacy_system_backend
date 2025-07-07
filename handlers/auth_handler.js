@@ -552,7 +552,8 @@ exports.logout = async (req, res, next) => {
     validateModifiedOnly: true
   });
   res.status(200).json({
-    status: 'success'
+    status: 'success',
+    message: 'successful logout'
   });
 };
 

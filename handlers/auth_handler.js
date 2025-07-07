@@ -401,18 +401,16 @@ exports.updateMyPassword = async (req, res, next) => {
 
 exports.verifyEmail = async (req, res, next) => {
   const { email, emailVerificationCode } = req.body;
-  if (!email) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Please provide your email'
-    });
+  if (!email || !emailVerificationCode) {
+    return next(
+      new AppError(
+        'Please provide all required failed',
+        400,
+        'missing_field_error'
+      )
+    );
   }
-  if (!emailVerificationCode) {
-    return res.status(400).json({
-      status: 'fail',
-      message: 'Please provide the verification code'
-    });
-  }
+
   const user = await findUserWithCode(
     emailVerificationCode,
     'email_verification',

@@ -119,6 +119,8 @@ userSchema.set('toJSON', {
     delete ret.passwordResetToken;
     delete ret.passwordResetTokenExpires;
     delete ret.__v;
+    delete ret.createdAt;
+    delete ret.updatedAt;
     delete ret.active;
     delete ret.emailVerificationCode;
     delete ret.emailVerificationExpire;

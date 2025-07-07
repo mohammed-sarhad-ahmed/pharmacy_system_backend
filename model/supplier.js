@@ -40,4 +40,7 @@ const supplierSchema = new mongoose.Schema(
   }
 );
 
+supplierSchema.path('createdAt').select(false);
+supplierSchema.path('updatedAt').select(false);
+
 module.exports = mongoose.model('Supplier', supplierSchema);

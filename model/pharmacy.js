@@ -39,5 +39,7 @@ const pharmacySchema = new mongoose.Schema(
     timestamps: true
   }
 );
+pharmacySchema.path('createdAt').select(false);
+pharmacySchema.path('updatedAt').select(false);
 
 module.exports = mongoose.model('Pharmacy', pharmacySchema);

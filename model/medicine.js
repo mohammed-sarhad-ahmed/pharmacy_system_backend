@@ -132,4 +132,7 @@ const medicineSchema = new mongoose.Schema(
   }
 );
 
+medicineSchema.path('createdAt').select(false);
+medicineSchema.path('updatedAt').select(false);
+
 module.exports = mongoose.model('Medicine', medicineSchema);

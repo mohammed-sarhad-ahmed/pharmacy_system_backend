@@ -11,13 +11,13 @@ exports.addMedicine = async (req, res, next) => {
 };
 
 exports.getMedicines = async (req, res, next) => {
-  const { query } = new APIFeatures(MedicineModel.find(), this.query)
+  const { query } = new APIFeatures(MedicineModel.find(), req.query)
     .filter()
     .limitFields()
     .paginate()
     .sort();
+  const medicines = await query.populate('supplier').lean();
 
-  const medicines = await query;
   res.status(200).json({
     status: 'success',
     data: { medicines }

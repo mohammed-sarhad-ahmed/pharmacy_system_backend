@@ -32,4 +32,7 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
+orderSchema.path('createdAt').select(false);
+orderSchema.path('updatedAt').select(false);
+
 module.exports = mongoose.model('Order', orderSchema);

@@ -40,7 +40,12 @@ const supplierSchema = new mongoose.Schema(
   }
 );
 
-supplierSchema.path('createdAt').select(false);
-supplierSchema.path('updatedAt').select(false);
+supplierSchema.set('toJSON', {
+  transform: (_doc, ret, _options) => {
+    delete ret.__v;
+    delete ret.createdAt;
+    delete ret.updatedAt;
+  }
+});
 
 module.exports = mongoose.model('Supplier', supplierSchema);

@@ -132,7 +132,12 @@ const medicineSchema = new mongoose.Schema(
   }
 );
 
-medicineSchema.path('createdAt').select(false);
-medicineSchema.path('updatedAt').select(false);
+medicineSchema.set('toJSON', {
+  transform: (_doc, ret, _options) => {
+    delete ret.__v;
+    delete ret.createdAt;
+    delete ret.updatedAt;
+  }
+});
 
 module.exports = mongoose.model('Medicine', medicineSchema);

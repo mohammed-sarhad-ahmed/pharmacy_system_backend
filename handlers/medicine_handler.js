@@ -16,7 +16,13 @@ exports.getMedicines = async (req, res, next) => {
     .limitFields()
     .paginate()
     .sort();
-  const medicines = await query.populate('supplier').lean();
+  const medicines = await query
+    .populate({
+      path: 'supplier',
+      select: '-__v -createdAt -updatedAt'
+    })
+    .select('-__v -createdAt -updatedAt')
+    .lean();
 
   res.status(200).json({
     status: 'success',
@@ -25,7 +31,9 @@ exports.getMedicines = async (req, res, next) => {
 };
 
 exports.getMedicine = async (req, res, next) => {
-  const medicine = await MedicineModel.findById(req.params.id);
+  const medicine = await MedicineModel.findById(req.params.id).populate({
+    path: 'supplier'
+  });
   if (!medicine) {
     return next(
       new AppError(

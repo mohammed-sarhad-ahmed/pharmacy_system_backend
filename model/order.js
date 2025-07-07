@@ -32,7 +32,12 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-orderSchema.path('createdAt').select(false);
-orderSchema.path('updatedAt').select(false);
+orderSchema.set('toJSON', {
+  transform: (_doc, ret, _options) => {
+    delete ret.__v;
+    delete ret.createdAt;
+    delete ret.updatedAt;
+  }
+});
 
 module.exports = mongoose.model('Order', orderSchema);

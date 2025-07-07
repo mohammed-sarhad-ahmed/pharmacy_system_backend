@@ -39,7 +39,13 @@ const pharmacySchema = new mongoose.Schema(
     timestamps: true
   }
 );
-pharmacySchema.path('createdAt').select(false);
-pharmacySchema.path('updatedAt').select(false);
+
+pharmacySchema.set('toJSON', {
+  transform: (_doc, ret, _options) => {
+    delete ret.__v;
+    delete ret.createdAt;
+    delete ret.updatedAt;
+  }
+});
 
 module.exports = mongoose.model('Pharmacy', pharmacySchema);

@@ -400,10 +400,23 @@ exports.updateMyPassword = async (req, res, next) => {
 };
 
 exports.verifyEmail = async (req, res, next) => {
+  const { email, emailVerificationCode } = req.body;
+  if (!email) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Please provide your email'
+    });
+  }
+  if (!emailVerificationCode) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Please provide the verification code'
+    });
+  }
   const user = await findUserWithCode(
-    req.body.emailVerificationCode,
+    emailVerificationCode,
     'email_verification',
-    req.body.email
+    email
   );
 
   if (!user) {

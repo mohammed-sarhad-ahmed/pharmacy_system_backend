@@ -101,7 +101,7 @@ userSchema.methods.correctPassword = async (
   candidatePassword,
   userPassword
 ) => {
-  await bcrypt.compare(candidatePassword, userPassword);
+  return await bcrypt.compare(candidatePassword, userPassword);
 };
 
 userSchema.methods.createPasswordResetToken = function () {

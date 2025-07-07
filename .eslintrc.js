@@ -17,6 +17,7 @@ module.exports = {
     'no-console': 'off',
     'consistent-return': 'off',
     'func-names': 'off',
+    'arrow-body-style': 'off',
     'object-shorthand': 'off',
     'no-process-exit': 'off',
     'no-param-reassign': 'off',

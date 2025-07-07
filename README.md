@@ -170,7 +170,7 @@ All routes in Auth are prefixed with `/auth` for example "/auth/signup".
 
 ---
 
-# profile Router
+# Profiles Router
 
 All routes in profile are prefixed with `/profiles` for example "/profile/update-me".
 

@@ -38,7 +38,7 @@ const sendVerifyToken = async (user, code, name = 'dear user') => {
   }
 };
 
-const findUserWithCode = async (code, type) => {
+const findUserWithCode = async (code, type, email) => {
   const hashedToken = shaHash(code);
   let options = {};
   if (type === 'password_reset') {
@@ -48,8 +48,17 @@ const findUserWithCode = async (code, type) => {
     };
   } else if (type === 'email_verification') {
     options = {
-      emailVerificationCode: hashedToken,
-      emailVerificationExpire: { $gt: Date.now() }
+      $or: [
+        {
+          email,
+          emailVerificationCode: hashedToken,
+          emailVerificationExpire: { $gt: Date.now() }
+        },
+        {
+          email,
+          isEmailVerified: true
+        }
+      ]
     };
   }
   const user = await UserModel.findOne(options);
@@ -394,8 +403,10 @@ exports.updateMyPassword = async (req, res, next) => {
 exports.verifyEmail = async (req, res, next) => {
   const user = await findUserWithCode(
     req.body.emailVerificationCode,
-    'email_verification'
+    'email_verification',
+    req.body.email
   );
+
   if (!user) {
     return next(
       new AppError(
@@ -404,6 +415,11 @@ exports.verifyEmail = async (req, res, next) => {
         'email_verification_error'
       )
     );
+  }
+  if (user.isEmailVerified) {
+    return res.status(200).json({
+      message: 'This email is already verified'
+    });
   }
   user.isEmailVerified = true;
   user.emailVerificationExpire = undefined;

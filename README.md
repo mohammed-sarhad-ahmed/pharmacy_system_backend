@@ -83,7 +83,8 @@ All routes in Auth are prefixed with `/auth` for example "/auth/signup".
 
 ```json
 {
-  "emailVerificationCode": "123456"
+  "emailVerificationCode": "123456",
+  "email": "some email"
 }
 ```
 

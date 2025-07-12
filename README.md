@@ -205,6 +205,115 @@ All routes in profile are prefixed with `/profiles` for example "/profile/update
 
 ---
 
+# 📦 Orders Router
+
+All routes in order are prefixed with `/orders`, for example `/orders/:id`.
+
+---
+
+## 📋 Routes Overview
+
+| Method | Endpoint | Auth | Description              |
+| ------ | -------- | ---- | ------------------------ |
+| GET    | `/`      | ✅   | Get all orders           |
+| POST   | `/`      | ✅   | Create a new order       |
+| GET    | `/:id`   | ✅   | Get a specific order     |
+| PATCH  | `/:id`   | ✅   | Update an existing order |
+| DELETE | `/:id`   | ✅   | Delete an order          |
+
+> POST, PATCH, DELETE routes are restricted to roles: `admin`, `supplier`.
+
+---
+
+### POST `/orders/`
+
+- **Body:**
+
+```json
+{
+  "customerName": "John Doe",
+  "items": [{ "medicine": "MEDICINE_ID", "quantity": 2 }],
+  "totalAmount": 40
+}
+```
+
+---
+
+### PATCH `/orders/:id`
+
+- **Body:**
+
+```json
+{
+  "status": "shipped",
+  "totalAmount": 50
+}
+```
+
+---
+
+### ❌ Errors
+
+- `item_not_exist_error`
+- `permission_error`
+- `validation_error`
+
+---
+
+# 💊 Medicines Router
+
+All routes in medicine are prefixed with `/medicines`, for example `/medicines/:id`.
+
+---
+
+## 📋 Routes Overview
+
+| Method | Endpoint | Auth | Description                 |
+| ------ | -------- | ---- | --------------------------- |
+| GET    | `/`      | ✅   | Get all medicines           |
+| POST   | `/`      | ✅   | Create a new medicine       |
+| GET    | `/:id`   | ✅   | Get a specific medicine     |
+| PATCH  | `/:id`   | ✅   | Update an existing medicine |
+| DELETE | `/:id`   | ✅   | Delete a medicine           |
+
+> POST, PATCH, DELETE routes are restricted to roles: `admin`, `supplier`.
+
+---
+
+### POST `/medicines/`
+
+- **Body:**
+
+```json
+{
+  "name": "Paracetamol",
+  "price": 10,
+  "stock": 100,
+  "supplier": "SUPPLIER_ID"
+}
+```
+
+---
+
+### PATCH `/medicines/:id`
+
+- **Body:**
+
+```json
+{
+  "price": 12,
+  "stock": 120
+}
+```
+
+---
+
+### ❌ Errors
+
+- `item_not_exist_error`
+- `permission_error`
+- `validation_error`
+
 ## ⚠️ Global Error Types
 
 | Type                       | Status | Description                          |
